@@ -1,0 +1,192 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "v1",
+    "title": "WebApiSample"
+  },
+  "paths": {
+    "/api/Messages/{id}": {
+      "get": {
+        "tags": [ "Messages" ],
+        "operationId": "Read",
+        "consumes": [],
+        "produces": [ "text/plain", "application/json", "text/json" ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": { "$ref": "#/definitions/Message" }
+          },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not Found" }
+        }
+      }
+    },
+    "/api/Messages/Send": {
+      "post": {
+        "tags": [ "Messages" ],
+        "operationId": "Send",
+        "consumes": [ "application/json-patch+json", "application/json", "text/json", "application/*+json" ],
+        "produces": [],
+        "parameters": [
+          {
+            "name": "messageRequest",
+            "in": "body",
+            "required": false,
+            "schema": { "$ref": "#/definitions/SendMessageRequest" }
+          }
+        ],
+        "responses": {
+          "202": { "description": "Success" },
+          "403": { "description": "Forbidden" }
+        }
+      }
+    },
+    "/api/Values": {
+      "get": {
+        "tags": [ "Values" ],
+        "operationId": "Get",
+        "consumes": [],
+        "produces": [ "text/plain", "application/json", "text/json" ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "uniqueItems": false,
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [ "Values" ],
+        "operationId": "Post",
+        "consumes": [ "application/json-patch+json", "application/json", "text/json", "application/*+json" ],
+        "produces": [],
+        "parameters": [
+          {
+            "name": "value",
+            "in": "body",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/api/Values/{id}": {
+      "get": {
+        "tags": [ "Values" ],
+        "operationId": "Get",
+        "consumes": [],
+        "produces": [ "text/plain", "application/json", "text/json" ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": { "type": "string" }
+          },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "tags": [ "Values" ],
+        "operationId": "Put",
+        "consumes": [ "application/json-patch+json", "application/json", "text/json", "application/*+json" ],
+        "produces": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "value",
+            "in": "body",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Success" },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "delete": {
+        "tags": [ "Values" ],
+        "operationId": "Delete",
+        "consumes": [],
+        "produces": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Success" },
+          "404": { "description": "Not Found" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "from": { "$ref": "#/definitions/User" },
+        "to": { "$ref": "#/definitions/User" },
+        "content": { "type": "string" },
+        "format": { "type": "string" }
+      }
+    },
+    "User": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "userName": { "type": "string" }
+      }
+    },
+    "SendMessageRequest": {
+      "type": "object",
+      "properties": {
+        "toUserId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "content": { "type": "string" },
+        "format": { "type": "string" }
+      }
+    }
+  }
+}
