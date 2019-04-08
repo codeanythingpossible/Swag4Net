@@ -2,6 +2,12 @@
 
 This repository contains a preview version of a .Net code generator for API consuming documented by Swagger or Open API.
 
+## Build project
+
+```cmd
+fake build
+```
+
 ## Command line generator
 
 Usage:
