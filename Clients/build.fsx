@@ -12,12 +12,15 @@ open Fake.IO.Globbing.Operators
 open Fake.DotNet
 open Fake.DotNet.Testing
 open Fake.Core
+open Fake.IO.FileSystemOperators
 
 // Properties
 let buildDir = "./build/"
 
 let install = lazy DotNet.install DotNet.Versions.Release_2_1_302
+
 let inline dotnetSimple arg = DotNet.Options.lift install.Value arg
+
 let inline withWorkDir wd =
     DotNet.Options.lift install.Value
     >> DotNet.Options.withWorkingDirectory wd
@@ -28,7 +31,13 @@ Target.create "Clean" (fun _ ->
 )
 
 Target.create "BuildGeneratorApp" (fun _ ->
-   DotNet.exec (withWorkDir "./src/ClientsForSwagger.Generator") "build" "" |> ignore
+  let specPath = __SOURCE_DIRECTORY__ </> "tests" </> "Assets" </> "swagger.json"
+  let outputfolder = __SOURCE_DIRECTORY__ </> "tests" </> "IntegrationTests" </> "GeneratedClientTests" </> "Generated"
+  let args = sprintf "--specfile %s --outputfolder %s --namespace GeneratedClientTests.Generated --clientname ApiClient" specPath outputfolder
+  let options = 
+    withWorkDir "./src/ClientsForSwagger.Generator"
+      >> DotNet.Options.withCustomParams (Some args)
+  DotNet.exec options "run" "" |> ignore
 )
 
 Target.create "IntegrationTests" (fun _ ->
