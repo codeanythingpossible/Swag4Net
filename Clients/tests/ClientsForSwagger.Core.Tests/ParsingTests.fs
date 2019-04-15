@@ -1,5 +1,6 @@
 module ParsingTests
 
+open System.IO
 open Newtonsoft
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
@@ -7,6 +8,11 @@ open ClientsForSwagger.Core
 open Expecto
 open System.Net
 open Models
+open ClientsForSwagger.Core
+open System
+open Expecto
+
+let (/>) a b = Path.Combine(a, b)
 
 let tests =
   testList "spec parsing tests" [
@@ -345,7 +351,20 @@ let tests =
       }
     ]
     
-    
+    testList "YAML parsing tests" [
+      
+      test "parsing yaml should give same result than json" {
+        
+        let json = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText
+        let yaml = AppDomain.CurrentDomain.BaseDirectory /> "petstore.yaml" |> File.ReadAllText
+        
+        let yamlSpec = YamlParser.parseSwagger yaml
+        let jsonSpec = JsonParser.parseSwagger json
+
+        Expect.equal yamlSpec jsonSpec "yaml and json should give same spec"
+      }
+      
+    ]
     
   ]
   

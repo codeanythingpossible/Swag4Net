@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{DC17E6
 	ProjectSection(SolutionItems) = preProject
 		tests\Assets\petstore.json = tests\Assets\petstore.json
 		tests\Assets\swagger.json = tests\Assets\swagger.json
+		tests\Assets\petstore.yaml = tests\Assets\petstore.yaml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}"
