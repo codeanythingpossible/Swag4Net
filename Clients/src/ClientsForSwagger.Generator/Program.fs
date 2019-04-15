@@ -7,6 +7,8 @@ open ClientsForSwagger.Core
 open ClientsForSwagger.Generators.RoslynGenerator
 open CsharpGenerator
 open CodeGeneration
+open System.IO
+open ClientsForSwagger.Core
 
 let (/>) a b =
     Path.Combine(a, b)
@@ -25,7 +27,7 @@ with
             | ClientName _ -> "specify client name."
             | OutputFolder _ -> "specifyoOutput folder."
 
-let getJsonSpec (path:string) =
+let getRawSpec (path:string) =
   try
     let uri = Uri path
     if uri.IsFile
@@ -49,8 +51,12 @@ let main argv =
     let clientName = results.GetResult(<@ ClientName @>, defaultValue="ApiClient")
     let outputFolder = results.GetResult <@ OutputFolder @>
     
-    let json = getJsonSpec specFile
-    let swagger = JsonParser.parseSwagger json
+    let parseSpec =
+      if Path.GetExtension specFile = "yaml"
+      then YamlParser.parseSwagger
+      else JsonParser.parseSwagger
+    
+    let swagger = specFile |> getRawSpec |> parseSpec
   
     let settings =
       { Namespace=ns }

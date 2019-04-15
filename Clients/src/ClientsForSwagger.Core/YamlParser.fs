@@ -13,7 +13,7 @@ module YamlParser =
     open Newtonsoft.Json
 
     let parseSwagger (content:string) =
-        let deserializer = new Deserializer()
+        let deserializer = Deserializer()
         let spec = deserializer.Deserialize(content)
         let json = JsonConvert.SerializeObject spec
         JsonParser.parseSwagger json
