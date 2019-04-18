@@ -31,7 +31,7 @@ namespace WebApiSample.Controllers
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         [SwaggerResponseContentType("application/json")]
-        public async Task<IActionResult> Read(Guid id)
+        public IActionResult Read(Guid id)
         {
             if (!User.Identity.IsAuthenticated)
                 return Forbid();
