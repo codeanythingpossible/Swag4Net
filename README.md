@@ -2,6 +2,8 @@
 
 This repository contains a preview version of a .Net code generator for API consuming documented by Swagger or Open API.
 
+[![romcyber MyGet Build Status](https://www.myget.org/BuildSource/Badge/romcyber?identifier=76cb3760-f717-48ad-8d1e-1c24107ff69b)](https://www.myget.org/)
+
 ## Build project
 
 ```cmd
