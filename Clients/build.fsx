@@ -36,13 +36,13 @@ Target.create "BuildGeneratorApp" (fun _ ->
   let outputfolder = __SOURCE_DIRECTORY__ </> "tests" </> "IntegrationTests" </> "GeneratedClientTests" </> "Generated"
   let args = sprintf "--specfile %s --outputfolder %s --namespace GeneratedClientTests.Generated --clientname ApiClient" specPath outputfolder
   let options = 
-    withWorkDir "./src/ClientsForSwagger.Generator"
+    withWorkDir "./src/Swag4Net.ClientGenerator"
       >> DotNet.Options.withCustomParams (Some args)
   DotNet.exec options "run" "" |> ignore
 )
 
 Target.create "PackGeneratorApp" (fun _ ->
-  let options = withWorkDir "./src/ClientsForSwagger.Generator"
+  let options = withWorkDir "./src/Swag4Net.ClientGenerator"
   DotNet.exec options "pack" "" |> ignore
 )
 
@@ -52,7 +52,7 @@ Target.create "IntegrationTests" (fun _ ->
 )
 
 Target.create "Test" (fun _ ->
-    DotNet.exec (withWorkDir "./tests/ClientsForSwagger.Core.Tests") "run" "" |> ignore
+    DotNet.exec (withWorkDir "./tests/Swag4Net.Core.Tests") "run" "" |> ignore
 )
 
 Target.create "Default" (fun _ ->

@@ -1,5 +1,5 @@
 using System;
-using ClientsForSwagger.RestClient.Results.DiscriminatedUnions;
+using Swag4Net.RestClient.Results.DiscriminatedUnions;
 using Xunit;
 
 namespace GeneratedClientTests
