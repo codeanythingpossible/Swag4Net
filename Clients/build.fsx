@@ -16,8 +16,10 @@ open Fake.IO.FileSystemOperators
 
 // Properties
 let buildDir = "./build/"
+let outputDir = "./!artifacts"
+let tempDir = "./!obj"
 
-let install = lazy DotNet.install DotNet.Versions.Release_2_1_302
+let install = lazy DotNet.install DotNet.Versions.FromGlobalJson
 
 let inline dotnetSimple arg = DotNet.Options.lift install.Value arg
 
@@ -27,7 +29,7 @@ let inline withWorkDir wd =
 
 // Targets
 Target.create "Clean" (fun _ ->
-    Shell.CleanDirs [buildDir]
+    Shell.cleanDirs [buildDir;outputDir;tempDir]
 )
 
 Target.create "BuildGeneratorApp" (fun _ ->
