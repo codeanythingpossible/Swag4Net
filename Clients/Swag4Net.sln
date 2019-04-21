@@ -1,0 +1,94 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.202
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Core", "src\Swag4Net.Core\Swag4Net.Core.fsproj", "{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swag4Net.Sample", "src\Swag4Net.Sample\Swag4Net.Sample.csproj", "{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.ClientGenerator", "src\Swag4Net.ClientGenerator\Swag4Net.ClientGenerator.fsproj", "{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Core.Tests", "tests\Swag4Net.Core.Tests\Swag4Net.Core.Tests.fsproj", "{E3CD000D-0723-4175-8900-0B7787AA50D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{DC17E624-D668-4093-9CF7-D2919224780A}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Assets\petstore.json = tests\Assets\petstore.json
+		tests\Assets\psd2-api 1.3.3 20190412.json = tests\Assets\psd2-api 1.3.3 20190412.json
+		tests\Assets\psd2-api 1.3.3 20190412.yaml = tests\Assets\psd2-api 1.3.3 20190412.yaml
+		tests\Assets\swagger.json = tests\Assets\swagger.json
+		tests\Assets\petstore.yaml = tests\Assets\petstore.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApiSample", "tests\IntegrationTests\WebApiSample\WebApiSample.csproj", "{546E8C33-D64B-44B7-A98F-C7C14B17631E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneratedClientTests", "tests\IntegrationTests\GeneratedClientTests\GeneratedClientTests.csproj", "{E4222471-0378-41F7-A25E-116228F9A81E}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Generators.RoslynGenerator", "src\Swag4Net.Generators.RoslynGenerator\Swag4Net.Generators.RoslynGenerator.fsproj", "{681937BE-DFAA-4363-81C7-EA90CAAF05F4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swag4Net.RestClient", "src\Swag4Net.RestClient\Swag4Net.RestClient.csproj", "{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{49A148C6-0FA3-4C83-9630-A57A41C2E18F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3CD000D-0723-4175-8900-0B7787AA50D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3CD000D-0723-4175-8900-0B7787AA50D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3CD000D-0723-4175-8900-0B7787AA50D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3CD000D-0723-4175-8900-0B7787AA50D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{546E8C33-D64B-44B7-A98F-C7C14B17631E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{546E8C33-D64B-44B7-A98F-C7C14B17631E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{546E8C33-D64B-44B7-A98F-C7C14B17631E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{546E8C33-D64B-44B7-A98F-C7C14B17631E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4222471-0378-41F7-A25E-116228F9A81E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4222471-0378-41F7-A25E-116228F9A81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4222471-0378-41F7-A25E-116228F9A81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4222471-0378-41F7-A25E-116228F9A81E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{681937BE-DFAA-4363-81C7-EA90CAAF05F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{681937BE-DFAA-4363-81C7-EA90CAAF05F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{681937BE-DFAA-4363-81C7-EA90CAAF05F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{681937BE-DFAA-4363-81C7-EA90CAAF05F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
+		{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
+		{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
+		{E3CD000D-0723-4175-8900-0B7787AA50D3} = {63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}
+		{DC17E624-D668-4093-9CF7-D2919224780A} = {63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}
+		{766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9} = {63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}
+		{546E8C33-D64B-44B7-A98F-C7C14B17631E} = {766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}
+		{E4222471-0378-41F7-A25E-116228F9A81E} = {766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}
+		{681937BE-DFAA-4363-81C7-EA90CAAF05F4} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
+		{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E44C2D80-4178-4956-BC1A-7E12178BD670}
+	EndGlobalSection
+EndGlobal
