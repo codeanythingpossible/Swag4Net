@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2035
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.202
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ClientsForSwagger.Core", "src\ClientsForSwagger.Core\ClientsForSwagger.Core.fsproj", "{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{DC17E624-D668-4093-9CF7-D2919224780A}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Assets\petstore.json = tests\Assets\petstore.json
+		tests\Assets\psd2-api 1.3.3 20190412.json = tests\Assets\psd2-api 1.3.3 20190412.json
+		tests\Assets\psd2-api 1.3.3 20190412.yaml = tests\Assets\psd2-api 1.3.3 20190412.yaml
 		tests\Assets\swagger.json = tests\Assets\swagger.json
 	EndProjectSection
 EndProject

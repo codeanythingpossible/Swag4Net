@@ -1,4 +1,4 @@
-namespace ClientsForSwagger.Core
+namespace ClientsForSwagger.Core.v2
 
 open System.Net
 

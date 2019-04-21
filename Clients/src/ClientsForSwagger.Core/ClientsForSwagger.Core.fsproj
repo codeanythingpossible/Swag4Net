@@ -4,7 +4,8 @@
     <RootNamespace>NewSwag.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Models.fs" />
+    <Compile Include="v3\Models.fs" />
+    <Compile Include="v2\Models.fs" />
     <Compile Include="JsonParser.fs" />
   </ItemGroup>
   <ItemGroup>
