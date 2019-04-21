@@ -1,8 +1,8 @@
-# ClientsForSwagger
+# Swag4Net
 
 This repository contains a preview version of a .Net code generator for API consuming documented by Swagger or Open API.
 
-[![romcyber MyGet Build Status](https://www.myget.org/BuildSource/Badge/romcyber?identifier=76cb3760-f717-48ad-8d1e-1c24107ff69b)](https://www.myget.org/)
+[![romcyber MyGet Build Status](https://www.myget.org/BuildSource/Badge/romcyber?identifier=76cb3760-f717-48ad-8d1e-1c24107ff69b)](https://www.myget.org/feed/romcyber/package/nuget/Swag4Net.ClientGenerator)
 
 ## Build project
 
@@ -17,13 +17,13 @@ Usage:
 When your swagger spec is stored in a local file:
 
 ```cmd
-*.exe --specfile ..\Files\petstore.json --outputfolder ../ClientsForSwagger.Sample/Generated --namespace  ClientsForSwagger.Sample.Generated --clientname PetstoreClient
+*.exe --specfile ..\Files\petstore.json --outputfolder ../Swag4Net.Sample/Generated --namespace  Swag4Net.Sample.Generated --clientname PetstoreClient
 ``` 
 
 When your swagger spec is downloadable from an endpoint:
 
 ```cmd
-*.exe --specfile http://localhost:50464/swagger/v1/swagger.json --outputfolder ../ClientsForSwagger.Sample/Generated --namespace  ClientsForSwagger.Sample.Generated --clientname PetstoreClient
+*.exe --specfile http://localhost:50464/swagger/v1/swagger.json --outputfolder ../Swag4Net.Sample/Generated --namespace  Swag4Net.Sample.Generated --clientname PetstoreClient
 ``` 
 
 ## Programming mindset

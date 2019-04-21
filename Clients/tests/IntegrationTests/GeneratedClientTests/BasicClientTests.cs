@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
-using ClientsForSwagger.RestClient;
+using Swag4Net.RestClient;
 using GeneratedClientTests.Generated;
 using Microsoft.AspNetCore.Mvc.Testing;
 using WebApiSample;

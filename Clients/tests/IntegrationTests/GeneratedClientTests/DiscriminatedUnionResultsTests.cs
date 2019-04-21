@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
-using ClientsForSwagger.RestClient.Results;
-using ClientsForSwagger.RestClient.Results.DiscriminatedUnions;
+using Swag4Net.RestClient.Results;
+using Swag4Net.RestClient.Results.DiscriminatedUnions;
 using GeneratedClientTests.Generated;
 using Microsoft.AspNetCore.Mvc.Testing;
 using WebApiSample;

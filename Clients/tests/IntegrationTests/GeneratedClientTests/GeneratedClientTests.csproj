@@ -16,7 +16,7 @@
   </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\src\ClientsForSwagger.RestClient\ClientsForSwagger.RestClient.csproj" />
+      <ProjectReference Include="..\..\..\src\Swag4Net.RestClient\Swag4Net.RestClient.csproj" />
       <ProjectReference Include="..\WebApiSample\WebApiSample.csproj" />
     </ItemGroup>
 
