@@ -4,11 +4,8 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
 open System.Net
-
 open Swag4Net.Core.v2
 open Models
-open Microsoft.CodeAnalysis.CSharp.Syntax
-open Microsoft.CodeAnalysis.CSharp
 
 module CodeGeneration =
 
