@@ -15,7 +15,6 @@ open Fake.Core
 open Fake.IO.FileSystemOperators
 
 // Properties
-let buildDir = "./build/"
 let outputDir = "./!artifacts"
 let tempDir = "./!obj"
 
@@ -29,7 +28,7 @@ let inline withWorkDir wd =
 
 // Targets
 Target.create "Clean" (fun _ ->
-    Shell.cleanDirs [buildDir;outputDir;tempDir]
+    Shell.cleanDirs [outputDir;tempDir]
 )
 
 Target.create "BuildGeneratorApp" (fun _ ->
@@ -40,6 +39,11 @@ Target.create "BuildGeneratorApp" (fun _ ->
     withWorkDir "./src/ClientsForSwagger.Generator"
       >> DotNet.Options.withCustomParams (Some args)
   DotNet.exec options "run" "" |> ignore
+)
+
+Target.create "PackGeneratorApp" (fun _ ->
+  let options = withWorkDir "./src/ClientsForSwagger.Generator"
+  DotNet.exec options "pack" "" |> ignore
 )
 
 Target.create "IntegrationTests" (fun _ ->
@@ -61,6 +65,7 @@ open Fake.Core.TargetOperators
   ==> "BuildGeneratorApp"
   ==> "Test"
   ==> "IntegrationTests"
+  ==> "PackGeneratorApp"
   ==> "Default"
 
 // start build
