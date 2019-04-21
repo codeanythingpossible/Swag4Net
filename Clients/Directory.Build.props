@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <!-- To be resolved from nuget package version  see https://github.com/zericco/Study.VersionUpdater -->
+    <VersionMajor Condition="'$(VersionMajor)'==''">1</VersionMajor>
+    <VersionMinor Condition="'$(VersionMinor)'==''">0</VersionMinor>
+    <VersionPatch Condition="'$(VersionPatch)'==''">0</VersionPatch>
+    <Authors>CodeAnythingPossible</Authors>
+    <Company>CodeAnythingPossible Inc.</Company>
+    <Product>CodeAnythingPossible.Swag4Net</Product>
+    <Version  Condition="'$(Version)'==''">$(VersionMajor).$(VersionMinor).$(VersionPatch)</Version>
+    <AssemblyVersion>$(VersionMajor).0.0.0</AssemblyVersion>
+    <FileVersion>$(VersionMajor).0.0.0</FileVersion>
+    <SolutionDir Condition=" '$(SolutionDir)' == '' ">$(MSBuildThisFileDirectory)</SolutionDir>
+    <BaseIntermediateOutputPath>$(SolutionDir)!obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>
