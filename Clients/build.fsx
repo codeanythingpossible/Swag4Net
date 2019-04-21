@@ -15,9 +15,10 @@ open Fake.Core
 open Fake.IO.FileSystemOperators
 
 // Properties
-let buildDir = "./build/"
+let outputDir = "./!artifacts"
+let tempDir = "./!obj"
 
-let install = lazy DotNet.install DotNet.Versions.Release_2_1_302
+let install = lazy DotNet.install DotNet.Versions.FromGlobalJson
 
 let inline dotnetSimple arg = DotNet.Options.lift install.Value arg
 
@@ -27,7 +28,7 @@ let inline withWorkDir wd =
 
 // Targets
 Target.create "Clean" (fun _ ->
-    Shell.CleanDirs [buildDir]
+    Shell.cleanDirs [outputDir;tempDir]
 )
 
 Target.create "BuildGeneratorApp" (fun _ ->
@@ -35,9 +36,14 @@ Target.create "BuildGeneratorApp" (fun _ ->
   let outputfolder = __SOURCE_DIRECTORY__ </> "tests" </> "IntegrationTests" </> "GeneratedClientTests" </> "Generated"
   let args = sprintf "--specfile %s --outputfolder %s --namespace GeneratedClientTests.Generated --clientname ApiClient" specPath outputfolder
   let options = 
-    withWorkDir "./src/ClientsForSwagger.Generator"
+    withWorkDir "./src/Swag4Net.ClientGenerator"
       >> DotNet.Options.withCustomParams (Some args)
   DotNet.exec options "run" "" |> ignore
+)
+
+Target.create "PackGeneratorApp" (fun _ ->
+  let options = withWorkDir "./src/Swag4Net.ClientGenerator"
+  DotNet.exec options "pack" "" |> ignore
 )
 
 Target.create "IntegrationTests" (fun _ ->
@@ -46,7 +52,7 @@ Target.create "IntegrationTests" (fun _ ->
 )
 
 Target.create "Test" (fun _ ->
-    DotNet.exec (withWorkDir "./tests/ClientsForSwagger.Core.Tests") "run" "" |> ignore
+    DotNet.exec (withWorkDir "./tests/Swag4Net.Core.Tests") "run" "" |> ignore
 )
 
 Target.create "Default" (fun _ ->
@@ -59,6 +65,7 @@ open Fake.Core.TargetOperators
   ==> "BuildGeneratorApp"
   ==> "Test"
   ==> "IntegrationTests"
+  ==> "PackGeneratorApp"
   ==> "Default"
 
 // start build

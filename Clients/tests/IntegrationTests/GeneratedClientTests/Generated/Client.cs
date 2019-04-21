@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using GeneratedClientTests.Generated;
-using ClientsForSwagger.RestClient.Results.DiscriminatedUnions;
-using ClientsForSwagger.RestClient.Results;
-using ClientsForSwagger.RestClient;
+using Swag4Net.RestClient.Results.DiscriminatedUnions;
+using Swag4Net.RestClient.Results;
+using Swag4Net.RestClient;
 
 namespace GeneratedClientTests.Generated
 {
