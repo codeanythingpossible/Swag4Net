@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -15,6 +16,7 @@ namespace Swag4Net.RestClient
     public abstract class RestApiClientBase
     {
         protected readonly HttpClient Client;
+        protected readonly NameValueCollection FormData = new NameValueCollection();
         
         private readonly IList<ISerializer> serializers = new List<ISerializer>();
         private readonly Dictionary<Type, IParameterFormatter> formatters = new Dictionary<Type, IParameterFormatter>();
@@ -114,6 +116,23 @@ namespace Swag4Net.RestClient
             var rawValue = FormatParameter(parameter);
             request.Headers.Add("Cookie", $"{name}={rawValue}");
         }
+
+        protected void AddHeaderParameter<T>(HttpRequestMessage request, string name, T parameter)
+        {
+            var rawValue = FormatParameter(parameter);
+            request.Headers.Add(name, rawValue);
+        }
+        
+        protected void AddFormDataParameter<T>(HttpRequestMessage request, string name, T parameter)
+        {
+            var rawValue = FormatParameter(parameter);
+            
+            //var content = request.Content as FormUrlEncodedContent;
+            //if (content == null)
+            //    content = new FormUrlEncodedContent(new KeyValuePair<string, string>[0]);
+            FormData.Add(name, rawValue);
+            
+        }
         
         protected void AddPathParameter<T>(HttpRequestMessage request, string name, T parameter)
         {
@@ -144,7 +163,7 @@ namespace Swag4Net.RestClient
         {
             FixUri(request);
             
-            var response = await Client.SendAsync(request, cancellationToken);
+            var response = await Send(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return Result.FailureOf<T>(response.ReasonPhrase);
 
@@ -172,7 +191,7 @@ namespace Swag4Net.RestClient
         {
             FixUri(request);
             
-            var response = await Client.SendAsync(request, cancellationToken);
+            var response = await Send(request, cancellationToken);
             return await Handle<T>(response);
         }
 
@@ -181,8 +200,16 @@ namespace Swag4Net.RestClient
         {
             FixUri(request);
 
-            var response = await Client.SendAsync(request, cancellationToken);
+            var response = await Send(request, cancellationToken);
             return Handle(response);
+        }
+
+        private async Task<HttpResponseMessage> Send(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (FormData.HasKeys())
+                request.Content = new FormUrlEncodedContent(FormData.AllKeys.Select(k => new KeyValuePair<string, string>(k, FormData[k])));
+
+            return await Client.SendAsync(request, cancellationToken);
         }
     }
 }
