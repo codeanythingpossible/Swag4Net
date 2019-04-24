@@ -269,6 +269,8 @@ module CsharpGenerator =
     let callPathParam = callParamMethodName "AddPathParameter"
     let callBodyParam = callParamMethodName "AddBodyParameter"
     let callCookieParam = callParamMethodName "AddCookieParameter"
+    let callHeaderParam = callParamMethodName "AddHeaderParameter"
+    let callFormDataParam = callParamMethodName "AddFormDataParameter"
     
     let execMethod =
       match dtoType with
@@ -312,6 +314,8 @@ module CsharpGenerator =
             | InPath -> Some (callPathParam p :> StatementSyntax)
             | InBody -> Some (callBodyParam p :> StatementSyntax)
             | InCookie -> Some (callCookieParam p :> StatementSyntax)
+            | InHeader -> Some (callHeaderParam p :> StatementSyntax)
+            | InFormData -> Some (callFormDataParam p :> StatementSyntax)
             | _ -> None
          )
     let block = 
