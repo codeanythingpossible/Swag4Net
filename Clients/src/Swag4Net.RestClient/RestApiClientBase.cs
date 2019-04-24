@@ -127,11 +127,7 @@ namespace Swag4Net.RestClient
         {
             var rawValue = FormatParameter(parameter);
             
-            //var content = request.Content as FormUrlEncodedContent;
-            //if (content == null)
-            //    content = new FormUrlEncodedContent(new KeyValuePair<string, string>[0]);
             FormData.Add(name, rawValue);
-            
         }
         
         protected void AddPathParameter<T>(HttpRequestMessage request, string name, T parameter)
