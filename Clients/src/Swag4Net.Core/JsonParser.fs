@@ -169,24 +169,21 @@ module JsonParser =
       )
     |> Seq.toList
   
+  let parseInfos (json:JObject) =
+    let contact = json.SelectToken "info.contact.email" |> string
+    let license = "info.license" |>json.SelectToken |> fun t -> if isNull t then None else Some (t.ToObject<License>())
+    { Description=json.SelectToken "info.description" |> string
+      Version=json.SelectToken "info.version" |> string
+      Title=json.SelectToken "info.title" |> string
+      TermsOfService=json.SelectToken "info.termsOfService" |> string
+      Contact= Some (Email contact)
+      License=license }
+
   let parseSwagger (content:string) =
     let json = JObject.Parse content
-    let contact = json.SelectToken "info.contact.email" |> string
-    let license = 
-      "info.license" |>json.SelectToken |> fun t -> if isNull t then None else Some (t.ToObject<License>())
-    let infos = 
-      { Description=json.SelectToken "info.description" |> string
-        Version=json.SelectToken "info.version" |> string
-        Title=json.SelectToken "info.title" |> string
-        TermsOfService=json.SelectToken "info.termsOfService" |> string
-        Contact= Some (Email contact)
-        License=license }
-
-    let definitions =
-      json.Item "definitions" |> JObject.FromObject |> parseDefinitions
-
+    let infos = parseInfos json
+    let definitions = json.Item "definitions" |> JObject.FromObject |> parseDefinitions
     let routes = parseRoutes json
-
     { Infos=infos
       Host=json.SelectToken "host" |> string
       BasePath=json.SelectToken "basePath" |> string
