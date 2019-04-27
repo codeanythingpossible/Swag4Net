@@ -202,25 +202,29 @@ module JsonParser =
             if v |> isNull
             then None
             else
+              let rsType = 
+                match v.SelectToken "schema" with
+                | s when s |> isNull -> 
+                    match v.SelectToken "content" with
+                    | c when c |> isNull -> None
+                    | :? JContainer as c -> 
+                      let schema = 
+                        c.Descendants()
+                        |> Seq.filter(fun t -> t.Type = JTokenType.Property && (t :?> JProperty).Name = "schema")
+                        |> Seq.tryHead
+                      schema |> Option.map (fun s -> s.First |> parseDataType spec http)
+                    | _ -> None
+                | s -> s |> parseDataType spec http |> Some
               match Enum.TryParse<HttpStatusCode> c.Name with
+              | false, _ when c.Name |> String.IsNullOrEmpty |> not && c.Name.Equals("default", StringComparison.InvariantCultureIgnoreCase) -> 
+                  Some 
+                    { Code = AnyStatusCode
+                      Description = v |> readString "description"
+                      Type = rsType }
               | false, _ -> None
               | true, code -> 
-                  let rsType = 
-                    match v.SelectToken "schema" with
-                    | s when s |> isNull -> 
-                        match v.SelectToken "content" with
-                        | c when c |> isNull -> None
-                        | :? JContainer as c -> 
-                          let schema = 
-                            c.Descendants()
-                            |> Seq.filter(fun t -> t.Type = JTokenType.Property && (t :?> JProperty).Name = "schema")
-                            |> Seq.tryHead
-                          //printfn " - schema:%A " (schema.ToString())
-                          schema |> Option.map (fun s -> s.First |> parseDataType spec http)
-                        | c -> None
-                    | s -> s |> parseDataType spec http |> Some
                   Some 
-                    { Code = code
+                    { Code = StatusCode code
                       Description = v |> readString "description"
                       Type = rsType }
       ) |> Seq.toList

@@ -82,7 +82,9 @@ module Models =
       ParamType:DataTypeDescription
       Required:bool }
   and Response = 
-    { Code:HttpStatusCode
+    { Code:StatusCodeInfo
       Description:string
       Type:DataTypeDescription option }
-
+  and StatusCodeInfo =
+    | AnyStatusCode
+    | StatusCode of HttpStatusCode
