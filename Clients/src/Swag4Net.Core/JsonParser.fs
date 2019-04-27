@@ -151,12 +151,13 @@ module JsonParser =
     | IsType "string" -> DataType.String None |> PrimaryType
     | IsType "boolean" -> DataType.Boolean |> PrimaryType
     | IsType "array" -> 
+        printfn "- array: %A" (o.ToString())
         (o.SelectToken "items")
         |> parseDataType spec http
         |> DataType.Array
         |> PrimaryType
     | Ref ref -> 
-        printf "- ref: %A" ref
+        printfn "- ref: %A" ref
         let r = 
           ref 
           |> readRefItem http spec 
@@ -167,10 +168,14 @@ module JsonParser =
               if token.Parent |> isNull |> not && token.Parent.Type = JTokenType.Property
               then (token.Parent :?> JProperty).Name
               else failwithf "Not implemented" //TODO: resolve name from context
-              
-            let p = parseDataType spec http
-            parseSchema p token name |> ComplexType
-            //parseDataType http token
+            
+            printfn "- ref content: %A" (token.ToString())
+            if token.SelectToken "properties" |> isNull |> not
+            then
+              let p = parseDataType spec http
+              parseSchema p token name |> ComplexType
+            else parseDataType spec http token
+
         | Error _ -> DataType.Object |> PrimaryType //TODO: return errors
         //ref.Split '/' |> Seq.last |> ComplexType
 
@@ -205,14 +210,14 @@ module JsonParser =
                     | s when s |> isNull -> 
                         match v.SelectToken "content" with
                         | c when c |> isNull -> None
-                        | c when c.Type = JTokenType.Property -> 
-                          let p = c :?> JProperty
+                        | :? JContainer as c -> 
                           let schema = 
-                            p.Descendants()
+                            c.Descendants()
                             |> Seq.filter(fun t -> t.Type = JTokenType.Property && (t :?> JProperty).Name = "schema")
                             |> Seq.tryHead
-                          schema |> Option.map (fun s -> s |> parseDataType spec http)
-                        | _ -> None
+                          //printfn " - schema:%A " (schema.ToString())
+                          schema |> Option.map (fun s -> s.First |> parseDataType spec http)
+                        | c -> None
                     | s -> s |> parseDataType spec http |> Some
                   Some 
                     { Code = code

@@ -10,7 +10,6 @@
 open Swag4Net.Core
 open YamlDotNet
 open YamlDotNet.Serialization
-open YamlDotNet.Serialization.NamingConventions
 open System
 open System.Net
 open System.Net.Http
@@ -33,43 +32,12 @@ let readYamlAsJson file =
   |> File.ReadAllText |> deserializer.Deserialize<obj>
   |> JsonConvert.SerializeObject
 
-//let readSpec file =
-//  file
-//  |> readYamlAsJson
-//  |> JObject.Parse
-
-//let docv2 = specv2File |> readSpec
-//let docv3 = specv3File |> readSpec
-
 let http = new HttpClient()
 
-let specv2 = specv2File |> readYamlAsJson |> JsonParser.parseSwagger http
-specv2.Routes |> List.find(fun r -> r.Path = "/pet/{petId}") |> fun r -> r.Responses
-
-let json = specv2File |> readYamlAsJson |> JObject.Parse
-let d = json.SelectToken "definitions.Category"
-d.ToString()
-
-let schemas = 
-  json.Descendants()
-  |> Seq.filter(fun t -> t.Type = JTokenType.Property && (t :?> JProperty).Name = "schema")
-  |> Seq.toList
-
-//schemas.Head.GetType()
+//let specv2 = specv2File |> readYamlAsJson |> JsonParser.parseSwagger http
+//specv2.Routes |> List.find(fun r -> r.Path = "/pet/{petId}") |> fun r -> r.Responses
 
 let specv3 = specv3File |> readYamlAsJson |> JsonParser.parseOpenApiV3 http
+
 specv3.Routes |> List.find(fun r -> r.Path = "/pets/{petId}") |> fun r -> r.Responses
-
-//parseReference "http://local/popo#lala/mlml"
-//parseReference "#lala/mlml"
-//parseReference "//local/popo#lala/mlml"
-//parseReference "../local/popo"
-
-//let path = "#components/schemas/Pet"
-
-//let schema =
-//    match JsonParser.getRefItem http json path with
-//    | Ok f -> f |> Async.RunSynchronously |> fun t -> t.ToString()
-//    | Error message -> ""
-
 
