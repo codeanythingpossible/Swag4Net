@@ -12,7 +12,7 @@ module Models =
       Schemes:string list
       Routes:Route list
       ExternalDocs:Map<string,string>
-      Definitions:TypeDefinition list }
+      Definitions:Schema list }
   and Infos =
     { Description:string
       Version:string
@@ -24,15 +24,15 @@ module Models =
     | Email of string
   and License = 
     { Name:string; Url:string }
-  and TypeDefinition = 
+  and Schema = 
     { Name:string
       Properties:Property list }
   and Property = 
-    { Name:string; Type:PropertyType; Enums:string list option }
+    { Name:string; Type:DataTypeDescription; Enums:string list option }
 
-  and PropertyType = 
+  and DataTypeDescription = 
     | PrimaryType of DataType
-    | ComplexType of TypeName
+    | ComplexType of Schema
     member __.IsArray() = 
       match __ with 
       | PrimaryType d ->
@@ -47,7 +47,7 @@ module Models =
     | Integer
     | Integer64
     | Boolean
-    | Array of PropertyType
+    | Array of DataTypeDescription
     | Object
   and [<RequireQualifiedAccess>] StringFormat =
     | Date
@@ -79,10 +79,10 @@ module Models =
       Description:string
       Deprecated:bool
       AllowEmptyValue:bool
-      ParamType:PropertyType
+      ParamType:DataTypeDescription
       Required:bool }
   and Response = 
     { Code:HttpStatusCode
       Description:string
-      Type:PropertyType option }
+      Type:DataTypeDescription option }
 

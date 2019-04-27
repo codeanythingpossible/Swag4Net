@@ -354,7 +354,7 @@ module CsharpGenerator =
     else
       method.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
   
-  let generateClass (settings:GenerationSettings) (def:TypeDefinition) =
+  let generateClass (settings:GenerationSettings) (def:Schema) =
     let members = 
       def.Properties
       |> List.map (
@@ -463,7 +463,7 @@ module CsharpGenerator =
       |> addMembers ns
     syntaxFactory.NormalizeWhitespace().ToFullString()
 
-  let generateDtos (settings:GenerationSettings) (defs:TypeDefinition list) =
+  let generateDtos (settings:GenerationSettings) (defs:Schema list) =
     let classes = defs |> Seq.map (generateClass settings) |> Seq.cast<MemberDeclarationSyntax> |> Seq.toArray
     let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(classes)
     let syntaxFactory =

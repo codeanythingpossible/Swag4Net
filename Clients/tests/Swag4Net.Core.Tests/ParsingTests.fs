@@ -262,7 +262,7 @@ let tests =
                 }
               }
             } }"""
-          |> JObject.Parse |> JsonParser.parseDefinitions |> Seq.head
+          |> JObject.Parse |> JsonParser.parseSchemas |> Seq.head
         Expect.equal actual
             { Name="ApiResponse"
               Properties=
@@ -328,7 +328,7 @@ let tests =
                   }
                 }
               }"""
-          |> JObject.Parse |> JsonParser.parseDefinitions |> Seq.head
+          |> JObject.Parse |> JsonParser.parseSchemas |> Seq.head
         Expect.equal actual
             { Name = "Pet";
               Properties =

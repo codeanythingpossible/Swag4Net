@@ -1,6 +1,6 @@
+#r "netstandard"
 #r "../../packages/newtonsoft.json/12.0.1/lib/netstandard2.0/newtonsoft.json.dll"
 #r "../../packages/YamlDotNet/6.0.0/lib/netstandard1.3/YamlDotNet.dll"
-#r "netstandard"
 #r "System.Net.Http.dll"
 
 #load "Models.fs"
@@ -33,23 +33,30 @@ let readYamlAsJson file =
   |> File.ReadAllText |> deserializer.Deserialize<obj>
   |> JsonConvert.SerializeObject
 
-let readSpec file =
-  file
-  |> readYamlAsJson
-  |> JObject.Parse
+//let readSpec file =
+//  file
+//  |> readYamlAsJson
+//  |> JObject.Parse
 
 //let docv2 = specv2File |> readSpec
 //let docv3 = specv3File |> readSpec
 
-let specv2 = specv2File |> readYamlAsJson |> JsonParser.parseSwagger
-let specv3 = specv3File |> readYamlAsJson |> JsonParser.parseSwagger
+let http = new HttpClient()
+
+let specv2 = specv2File |> readYamlAsJson |> JsonParser.parseSwagger http
+specv2.Routes |> List.find(fun r -> r.Path = "/pet/{petId}") |> fun r -> r.Responses
+
+let json = specv2File |> readYamlAsJson |> JObject.Parse
+let d = json.SelectToken "definitions.Category"
+d.ToString()
+
+let specv3 = specv3File |> readYamlAsJson |> JsonParser.parseSwagger http
+//specv3.Routes |> List.find(fun r -> r.Path = "/pet/{petId}") |> fun r -> r.Responses
 
 //parseReference "http://local/popo#lala/mlml"
 //parseReference "#lala/mlml"
 //parseReference "//local/popo#lala/mlml"
 //parseReference "../local/popo"
-
-//let http = new HttpClient()
 
 //let path = "#components/schemas/Pet"
 
