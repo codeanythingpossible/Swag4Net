@@ -50,8 +50,15 @@ let json = specv2File |> readYamlAsJson |> JObject.Parse
 let d = json.SelectToken "definitions.Category"
 d.ToString()
 
-let specv3 = specv3File |> readYamlAsJson |> JsonParser.parseSwagger http
-//specv3.Routes |> List.find(fun r -> r.Path = "/pet/{petId}") |> fun r -> r.Responses
+let schemas = 
+  json.Descendants()
+  |> Seq.filter(fun t -> t.Type = JTokenType.Property && (t :?> JProperty).Name = "schema")
+  |> Seq.toList
+
+//schemas.Head.GetType()
+
+let specv3 = specv3File |> readYamlAsJson |> JsonParser.parseOpenApiV3 http
+specv3.Routes |> List.find(fun r -> r.Path = "/pets/{petId}") |> fun r -> r.Responses
 
 //parseReference "http://local/popo#lala/mlml"
 //parseReference "#lala/mlml"
