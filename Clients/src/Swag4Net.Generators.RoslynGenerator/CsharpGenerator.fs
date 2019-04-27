@@ -38,7 +38,7 @@ module RoslynDsl =
             | DataType.Boolean -> "bool"
             | DataType.Array s -> s |> getTypeName |> sprintf "IEnumerable<%s>"
             | DataType.Object -> "object"
-        | ComplexType name -> name
+        | ComplexType s -> s.Name
     prop.Type |> getTypeName |> SyntaxFactory.ParseTypeName
 
   let ucFirst(text:string) =
@@ -172,11 +172,14 @@ module CsharpGenerator =
         | DataType.Array propType -> 
             propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
         | DataType.Object -> "object"
-    | ComplexType typeName -> typeName
+    | ComplexType s -> s.Name
 
-  let isSuccess (code:HttpStatusCode) =
-    let c = int32 code
-    c >= 200 && c < 300
+  let isSuccess =
+    function
+    | StatusCode code ->
+        let c = int32 code
+        c >= 200 && c < 300
+    | _ -> false
 
   let resolveRouteSuccessReponseType route =
     let successResponses = route.Responses |> List.filter (fun r -> r.Code |> isSuccess)
@@ -216,13 +219,16 @@ module CsharpGenerator =
         let codesAndTypes =
           route.Responses
             |> List.filter (fun r -> r.Code |> isSuccess)
-            |> List.map(
+            |> List.choose(
                  fun r ->
                   let t = 
                     match r.Type with
                     | Some t -> rawTypeIdentifier t
                     | None -> "Nothing"
-                  (int r.Code), t
+                  match r.Code with
+                  | StatusCode c ->
+                      Some ((int c), t)
+                  | _ -> None
               )
             |> List.distinctBy fst
 
