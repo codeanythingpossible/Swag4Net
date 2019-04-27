@@ -7,9 +7,39 @@ open Models
 open Newtonsoft.Json.Linq
 open System
 open System.Net
+open System.Net.Http
+open System.IO
+
+module DocumentModel =
+
+  type Anchor = Anchor of string
+ 
+  type ReferencePath =
+      | ExternalUrl of Uri * Anchor option
+      | RelativePath of string * Anchor option
+      | InnerReference of Anchor
+
+  let parseReference (ref:string) : Result<ReferencePath, string> =
+    match ref with
+    | _ when String.IsNullOrWhiteSpace ref ->
+        Error "ref cannot be empty"
+    | _ when ref.StartsWith "#" ->
+        ref.Substring 1 |> Anchor |> InnerReference |> Ok
+    | _ when Uri.IsWellFormedUriString(ref, UriKind.Absolute) ->
+        let uri = Uri ref
+        let a = if String.IsNullOrWhiteSpace uri.Fragment then None else Some(Anchor uri.Fragment)
+        ExternalUrl(Uri uri.AbsoluteUri, a) |> Ok
+    | _ -> 
+        match ref.IndexOf '#' with
+        | -1 -> RelativePath(ref, None) |> Ok
+        | i -> 
+          let a = ref.Substring i
+          RelativePath(ref, Some (Anchor a)) |> Ok
 
 [<RequireQualifiedAccess>]
 module JsonParser =
+
+  open DocumentModel
 
   let readOrDefault<'t> defaultValue name (token:JToken) =
     let node = token.Item name
@@ -27,6 +57,29 @@ module JsonParser =
     match token.SelectToken name |> string |> Boolean.TryParse with
     | true, value -> value
     | false, _ -> false
+
+  let getRefItem (http:HttpClient) (doc:JObject) (path:string) =
+    path
+    |> parseReference
+    |> Result.map
+        (function
+         | ExternalUrl(uri, a) ->
+              async {
+                  let! content = uri |> http.GetStringAsync |> Async.AwaitTask
+                  return JObject.Parse content :> JToken
+              }
+         | RelativePath(p, a) ->
+              async {
+                  let content = File.ReadAllText p
+                  return JObject.Parse content :> JToken
+              }
+         | InnerReference (Anchor a) -> 
+              async {
+                  let p = (a.Trim '/').Replace('/', '.')
+                  let token = doc.SelectToken p
+                  return token
+              }
+        )
     
   let parseParameterLocation (token:JToken) =
     match token |> string with

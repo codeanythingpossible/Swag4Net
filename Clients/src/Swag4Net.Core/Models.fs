@@ -1,5 +1,6 @@
 namespace Swag4Net.Core
 
+open System
 open System.Net
 
 module Models =
