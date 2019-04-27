@@ -109,7 +109,18 @@ let tests =
               Description="Pet object that needs to be added to the store"
               Deprecated=false
               AllowEmptyValue=false
-              ParamType=ComplexType { Name="Pet"; Properties=[] }
+              ParamType=ComplexType 
+                { Name="Pet"
+                  Properties=
+                  [
+                    { Name = "id"
+                      Type = PrimaryType DataType.Integer64
+                      Enums = None;
+                    }
+                    { Name = "name"
+                      Type = PrimaryType (DataType.String None)
+                      Enums = None } ]
+                }
               Required=true } ]
           "parameters should be equal"
       }
@@ -253,7 +264,56 @@ let tests =
               {
                 Code=StatusCode HttpStatusCode.OK
                 Description="successful operation"
-                Type=Some (ComplexType { Name="Pet"; Properties=[] })
+                Type= Some(ComplexType
+                                { Name = "Pet";
+                                  Properties =
+                                   [
+                                     { Name = "id"
+                                       Type = PrimaryType DataType.Integer64
+                                       Enums = None
+                                     }
+                                     { Name = "category"
+                                       Type =
+                                         ComplexType
+                                            {  Name = "Category"
+                                               Properties = 
+                                                 [ { Name = "id"
+                                                     Type = PrimaryType DataType.Integer64
+                                                     Enums = None }
+                                                   { Name = "name"
+                                                     Type = PrimaryType (DataType.String None)
+                                                     Enums = None }]
+                                            }
+                                       Enums = None }
+                                     { Name = "name"
+                                       Type = PrimaryType (DataType.String None)
+                                       Enums = None }
+                                     { Name = "photoUrls"
+                                       Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                                       Enums = None }
+                                     { Name = "tags"
+                                       Type = PrimaryType
+                                               ( DataType.Array
+                                                   ( ComplexType
+                                                      { Name = "Tag"
+                                                        Properties =
+                                                          [ { Name = "id"
+                                                              Type = PrimaryType DataType.Integer64
+                                                              Enums = None }
+                                                            { Name = "name"
+                                                              Type = PrimaryType (DataType.String None)
+                                                              Enums = None } ]
+                                                      } ) )
+                                       Enums = None
+                                     }
+                                     { Name = "status"
+                                       Type = PrimaryType (DataType.String None)
+                                       Enums = Some ["available"; "pending"; "sold"]
+                                     }
+                                   ]
+                                }
+                            )
+
               }
               { Code=StatusCode HttpStatusCode.BadRequest; Description="Invalid ID supplied"; Type=None }
               { Code=StatusCode HttpStatusCode.NotFound; Description="Pet not found"; Type=None }
@@ -348,23 +408,53 @@ let tests =
                 }
               }"""
           |> JObject.Parse |> JsonParser.parseSchemas spec http |> Seq.head
+
         Expect.equal actual
-            { Name = "Pet";
-              Properties =
-                [ { Name = "id"
-                    Type = PrimaryType DataType.Integer64
-                    Enums=None  }
-                  { Name = "category"; Type = ComplexType { Name="Category"; Properties=[] }; Enums=None }
-                  { Name = "name"; Type = PrimaryType (DataType.String None); Enums=None }
-                  { Name = "photoUrls"
-                    Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
-                    Enums=None }
-                  { Name = "tags"
-                    Type = PrimaryType (DataType.Array (ComplexType { Name="Tag"; Properties=[] }))
-                    Enums=None }
-                  { Name = "status"
-                    Type = PrimaryType (DataType.String None)
-                    Enums=Some ["available"; "pending"; "sold"]} ]
+          { Name = "Pet"
+            Properties =
+             [{ Name = "id"
+                Type = PrimaryType DataType.Integer64
+                Enums = None
+              } 
+              { Name = "category"
+                Type =
+                 ComplexType
+                   { Name = "Category"
+                     Properties = [ { Name = "id"
+                                      Type = PrimaryType DataType.Integer64
+                                      Enums = None }
+                                    { Name = "name"
+                                      Type = PrimaryType (DataType.String None)
+                                      Enums = None } ]
+                   }
+                Enums = None }
+              { Name = "name"
+                Type = PrimaryType (DataType.String None)
+                Enums = None }
+              { Name = "photoUrls"
+                Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                Enums = None }
+              { Name = "tags"
+                Type =
+                  PrimaryType
+                    (DataType.Array
+                       (ComplexType
+                          { Name = "Tag"
+                            Properties = [
+                             { Name = "id"
+                               Type = PrimaryType DataType.Integer64
+                               Enums = None }
+                             { Name = "name"
+                               Type = PrimaryType (DataType.String None)
+                               Enums = None
+                             } ]
+                          }))
+                Enums = None
+              }
+              { Name = "status"
+                Type = PrimaryType (DataType.String None)
+                Enums = Some ["available"; "pending"; "sold"]
+              }]
             }
           "definition should be equal"
       }

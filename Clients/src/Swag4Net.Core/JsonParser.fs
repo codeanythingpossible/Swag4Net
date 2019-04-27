@@ -98,10 +98,6 @@ module JsonParser =
   type DataTypeProvider = JToken -> DataTypeDescription
 
   let parseSchema (parseDataType:DataTypeProvider) (d:JToken) name =
-
-    printfn "- name: %s" name
-    printfn "- token: %s" (d.ToString())
-
     let properties =
       (d.SelectToken "properties" |> JObject.FromObject).Properties()
       |> Seq.map (                  
@@ -151,13 +147,11 @@ module JsonParser =
     | IsType "string" -> DataType.String None |> PrimaryType
     | IsType "boolean" -> DataType.Boolean |> PrimaryType
     | IsType "array" -> 
-        printfn "- array: %A" (o.ToString())
         (o.SelectToken "items")
         |> parseDataType spec http
         |> DataType.Array
         |> PrimaryType
     | Ref ref -> 
-        printfn "- ref: %A" ref
         let r = 
           ref 
           |> readRefItem http spec 
@@ -168,8 +162,6 @@ module JsonParser =
               if token.Parent |> isNull |> not && token.Parent.Type = JTokenType.Property
               then (token.Parent :?> JProperty).Name
               else failwithf "Not implemented" //TODO: resolve name from context
-            
-            printfn "- ref content: %A" (token.ToString())
             if token.SelectToken "properties" |> isNull |> not
             then
               let p = parseDataType spec http
