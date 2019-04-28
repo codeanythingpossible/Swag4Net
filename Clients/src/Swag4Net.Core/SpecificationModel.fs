@@ -1,8 +1,4 @@
-namespace Swag4Net.Core.v3
-
-//open System.Net
-
-module SpecificationModel =
+module Swag4Net.Core.SpecificationModel
 
   type TypeName = string
   type HttpStatusCode = string
@@ -15,7 +11,7 @@ module SpecificationModel =
   type Url = string
 
   type Documentation =
-    { OpenApi:string
+    { Standard: Standard
       Infos:Infos
       Servers:Server list option
       Paths:Map<string, Path>
@@ -23,11 +19,14 @@ module SpecificationModel =
       Security:SecurityRequirement list option
       Tags:Tag list option
       ExternalDocs:ExternalDocumentation option }
+  and Standard =
+    { Name: string
+      Version: string }
   and Infos =
-    { Description:string
+    { Description:string option
       Version:string
       Title:string
-      TermsOfService:string
+      TermsOfService:string option
       Contact:Contact option
       License:License option }
   and Request =

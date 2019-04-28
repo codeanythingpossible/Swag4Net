@@ -1,5 +1,4 @@
-module Swag4Net.Code.Tests.ParsingTests 
-
+module Swag4Net.Code.Tests.v2.ParsingTests
 open System.IO
 open Newtonsoft.Json.Linq
 open Swag4Net.Core.v2
