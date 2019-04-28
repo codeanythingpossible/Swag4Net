@@ -42,10 +42,13 @@ module JsonParser =
   open DocumentModel
 
   let readOrDefault<'t> defaultValue name (token:JToken) =
-    let node = token.Item name
-    if node |> isNull
-    then defaultValue
-    else node.ToObject<'t>()
+    try
+      let node = token.Item name
+      if node |> isNull
+      then defaultValue
+      else node.ToObject<'t>()
+    with e -> 
+      raise e
 
   let readString name (token:JToken) =
     let v = token.SelectToken name
@@ -93,7 +96,9 @@ module JsonParser =
     | "path" -> InPath
     | "query" -> InQuery
     | "formData" -> InFormData
-    | s -> failwithf "Not supported parameter location '%s'" s
+    | s -> 
+        InQuery
+        //failwithf "Not supported parameter location '%s' in %A" s (token.ToString())
 
   type DataTypeProvider = JToken -> DataTypeDescription
 
@@ -250,20 +255,25 @@ module JsonParser =
          fun path ->
           let po = path.Value |> JObject.FromObject
           po.Properties()
-          |> Seq.map (
-              fun verb ->
-                let route = verb.Value
-                { Verb = verb.Name
-                  Path = path.Name
-                  Tags = route |> readOrDefault<string list> [] "tags"
-                  Summary = route |> readString "summary"
-                  Description = route |> readString "description"
-                  OperationId = route |> readString "operationId"
-                  Consumes = route |> readOrDefault<string list> [] "consumes"
-                  Produces = route |> readOrDefault<string list> [] "produces"
-                  Responses = route.Item "responses" |> parseResponses spec http
-                  Parameters = route.Item "parameters" |> parseParameters spec http
-                }
+          |> Seq.choose (
+              fun prop ->
+                let route = prop.Value
+                let verb = prop.Name.ToLowerInvariant()
+                if ["get";"post";"put";"patch";"head";"delete";"options";"trace"] |> List.contains verb
+                then
+                  Some
+                    { Verb = verb
+                      Path = path.Name
+                      Tags = route |> readOrDefault<string list> [] "tags"
+                      Summary = route |> readString "summary"
+                      Description = route |> readString "description"
+                      OperationId = route |> readString "operationId"
+                      Consumes = route |> readOrDefault<string list> [] "consumes"
+                      Produces = route |> readOrDefault<string list> [] "produces"
+                      Responses = route.Item "responses" |> parseResponses spec http
+                      Parameters = route.Item "parameters" |> parseParameters spec http
+                    }
+                else None
               )
        )
     |> Seq.toList
