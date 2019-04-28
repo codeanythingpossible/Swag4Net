@@ -12,8 +12,8 @@ open YamlDotNet.Serialization.NamingConventions
 module YamlParser =
     open Newtonsoft.Json
 
-    let parseSwagger (content:string) =
+    let parseSwagger http (content:string) =
         let deserializer = Deserializer()
         let spec = deserializer.Deserialize(content)
         let json = JsonConvert.SerializeObject spec
-        JsonParser.parseSwagger json
+        JsonParser.parseSwagger http json

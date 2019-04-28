@@ -11,21 +11,21 @@ open System.IO
 open Swag4Net.Core
 
 let (/>) a b =
-    Path.Combine(a, b)
+  Path.Combine(a, b)
 
 type CLIArguments =
-    | [<Mandatory>] SpecFile of path:string
-    | Namespace of string
-    | ClientName of string
-    | [<Mandatory>] OutputFolder of string
+  | [<Mandatory>] SpecFile of path:string
+  | Namespace of string
+  | ClientName of string
+  | [<Mandatory>] OutputFolder of string
 with
-    interface IArgParserTemplate with
-        member s.Usage =
-            match s with
-            | SpecFile _ -> "specify a Swagger spec file."
-            | Namespace _ -> "specify namespace of generated code."
-            | ClientName _ -> "specify client name."
-            | OutputFolder _ -> "specifyoOutput folder."
+  interface IArgParserTemplate with
+    member s.Usage =
+      match s with
+      | SpecFile _ -> "specify a Swagger spec file."
+      | Namespace _ -> "specify namespace of generated code."
+      | ClientName _ -> "specify client name."
+      | OutputFolder _ -> "specifyoOutput folder."
 
 let getRawSpec (path:string) =
   try
@@ -51,12 +51,14 @@ let main argv =
     let clientName = results.GetResult(<@ ClientName @>, defaultValue="ApiClient")
     let outputFolder = results.GetResult <@ OutputFolder @>
     
+    let http = new HttpClient()
+    
     let parseSpec =
       if Path.GetExtension specFile = "yaml"
       then YamlParser.parseSwagger
       else JsonParser.parseSwagger
     
-    let swagger = specFile |> getRawSpec |> parseSpec
+    let swagger = specFile |> getRawSpec |> parseSpec http
   
     let settings =
       { Namespace=ns }

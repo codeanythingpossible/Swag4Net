@@ -7,12 +7,16 @@ open Newtonsoft.Json.Linq
 open Swag4Net.Core
 open Expecto
 open System.Net
+open System.Net.Http
 open Models
 open Swag4Net.Core
 open System
 open Expecto
 
 let (/>) a b = Path.Combine(a, b)
+
+let http = new HttpClient()
+let spec = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText |> JObject.Parse
 
 let tests =
   testList "spec parsing tests" [
@@ -28,7 +32,7 @@ let tests =
                 "put": { }
                 }
               }
-           }""" |> JObject.Parse |> JsonParser.parseRoutes
+           }""" |> JObject.Parse |> JsonParser.parseRoutes http
         Expect.equal routes.Length 3 "routes count should match"
       }
       
@@ -70,8 +74,23 @@ let tests =
                     }
                   }
                 }
+              },
+            "definitions": {
+              "Pet": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "doggie"
+                  }
+                }
               }
-           }""" |> JObject.Parse |> JsonParser.parseRoutes |> Seq.head
+            }
+           }""" |> JObject.Parse |> JsonParser.parseRoutes http |> Seq.head
         
         Expect.equal route.Path "/pet" "path should be equal"
         Expect.equal route.Summary "Add a new pet to the store" "summary should be equal"
@@ -82,7 +101,7 @@ let tests =
         Expect.sequenceEqual route.Consumes ["application/json"; "application/xml"] "consumes should be equal"
         Expect.sequenceEqual route.Produces ["application/xml";"application/json"] "produces should be equal"
         
-        Expect.sequenceEqual route.Responses [{ Code=HttpStatusCode.MethodNotAllowed; Description="Invalid input"; Type=None }] "responses should be equal"
+        Expect.sequenceEqual route.Responses [{ Code=StatusCode HttpStatusCode.MethodNotAllowed; Description="Invalid input"; Type=None }] "responses should be equal"
         
         Expect.sequenceEqual route.Parameters
           [ { Location=InBody
@@ -90,7 +109,18 @@ let tests =
               Description="Pet object that needs to be added to the store"
               Deprecated=false
               AllowEmptyValue=false
-              ParamType=ComplexType "Pet"
+              ParamType=ComplexType 
+                { Name="Pet"
+                  Properties=
+                  [
+                    { Name = "id"
+                      Type = PrimaryType DataType.Integer64
+                      Enums = None;
+                    }
+                    { Name = "name"
+                      Type = PrimaryType (DataType.String None)
+                      Enums = None } ]
+                }
               Required=true } ]
           "parameters should be equal"
       }
@@ -106,7 +136,7 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int32"
-            } ]""" |> JArray.Parse |> JsonParser.parseParameters |> List.head
+            } ]""" |> JArray.Parse |> JsonParser.parseParameters spec http |> List.head
             
           Expect.equal parameter
               { Location=InPath
@@ -128,7 +158,7 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int64"
-            } ]""" |> JArray.Parse |> JsonParser.parseParameters |> List.head
+            } ]""" |> JArray.Parse |> JsonParser.parseParameters spec http |> List.head
             
           Expect.equal parameter
               { Location=InPath
@@ -144,70 +174,70 @@ let tests =
         test "Parsing int64 data type" {
           let actual =
             """{ "type": "integer", "format": "int64" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType DataType.Integer64) "data type should be equal"
         }
         
         test "Parsing int32 data type" {
           let actual =
             """{ "type": "integer", "format": "int32" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType DataType.Integer) "data type should be equal"
         }
         
         test "Parsing boolean data type" {
           let actual =
             """{ "type": "boolean" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType DataType.Boolean) "data type should be equal"
         }    
         
         test "Parsing string data type" {
           let actual =
             """{ "type": "string" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String None)) "data type should be equal"
         }
         
         test "Parsing string data type with invalid format should fallback to simple string" {
           let actual =
             """{ "type": "string", "format": "lalala" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String None)) "data type should be equal"
         }
               
         test "Parsing string data type with date format" {
           let actual =
             """{ "type": "string", "format": "date" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Date))) "data type should be equal"
         }
   
         test "Parsing string data type with datetime format" {
           let actual =
             """{ "type": "string", "format": "date-time" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.DateTime))) "data type should be equal"
         }
   
         test "Parsing string data type with password format" {
           let actual =
             """{ "type": "string", "format": "password" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Password))) "data type should be equal"
         }
         
         test "Parsing string data type with binary format" {
           let actual =
             """{ "type": "string", "format": "binary" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Binary))) "data type should be equal"
         }
         
         test "Parsing string data type with byte format" {
           let actual =
             """{ "type": "string", "format": "byte" }"""
-            |> JObject.Parse |> JsonParser.parseDataType
+            |> JObject.Parse |> JsonParser.parseDataType spec http
           Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Base64Encoded))) "data type should be equal"
         }
         
@@ -228,16 +258,65 @@ let tests =
             "404": {
               "description": "Pet not found"
             }
-          }""" |> JObject.Parse |> JsonParser.parseResponses
+          }""" |> JObject.Parse |> JsonParser.parseResponses spec http
         Expect.sequenceEqual responses
             [
               {
-                Code=HttpStatusCode.OK
+                Code=StatusCode HttpStatusCode.OK
                 Description="successful operation"
-                Type=Some (ComplexType "Pet")
+                Type= Some(ComplexType
+                                { Name = "Pet";
+                                  Properties =
+                                   [
+                                     { Name = "id"
+                                       Type = PrimaryType DataType.Integer64
+                                       Enums = None
+                                     }
+                                     { Name = "category"
+                                       Type =
+                                         ComplexType
+                                            {  Name = "Category"
+                                               Properties = 
+                                                 [ { Name = "id"
+                                                     Type = PrimaryType DataType.Integer64
+                                                     Enums = None }
+                                                   { Name = "name"
+                                                     Type = PrimaryType (DataType.String None)
+                                                     Enums = None }]
+                                            }
+                                       Enums = None }
+                                     { Name = "name"
+                                       Type = PrimaryType (DataType.String None)
+                                       Enums = None }
+                                     { Name = "photoUrls"
+                                       Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                                       Enums = None }
+                                     { Name = "tags"
+                                       Type = PrimaryType
+                                               ( DataType.Array
+                                                   ( ComplexType
+                                                      { Name = "Tag"
+                                                        Properties =
+                                                          [ { Name = "id"
+                                                              Type = PrimaryType DataType.Integer64
+                                                              Enums = None }
+                                                            { Name = "name"
+                                                              Type = PrimaryType (DataType.String None)
+                                                              Enums = None } ]
+                                                      } ) )
+                                       Enums = None
+                                     }
+                                     { Name = "status"
+                                       Type = PrimaryType (DataType.String None)
+                                       Enums = Some ["available"; "pending"; "sold"]
+                                     }
+                                   ]
+                                }
+                            )
+
               }
-              { Code=HttpStatusCode.BadRequest; Description="Invalid ID supplied"; Type=None }
-              { Code=HttpStatusCode.NotFound; Description="Pet not found"; Type=None }
+              { Code=StatusCode HttpStatusCode.BadRequest; Description="Invalid ID supplied"; Type=None }
+              { Code=StatusCode HttpStatusCode.NotFound; Description="Pet not found"; Type=None }
             ] "responses should be equal"
       }
       
@@ -262,7 +341,7 @@ let tests =
                 }
               }
             } }"""
-          |> JObject.Parse |> JsonParser.parseDefinitions |> Seq.head
+          |> JObject.Parse |> JsonParser.parseSchemas spec http |> Seq.head
         Expect.equal actual
             { Name="ApiResponse"
               Properties=
@@ -328,24 +407,54 @@ let tests =
                   }
                 }
               }"""
-          |> JObject.Parse |> JsonParser.parseDefinitions |> Seq.head
+          |> JObject.Parse |> JsonParser.parseSchemas spec http |> Seq.head
+
         Expect.equal actual
-            { Name = "Pet";
-              Properties =
-                [ { Name = "id"
-                    Type = PrimaryType DataType.Integer64
-                    Enums=None  }
-                  { Name = "category"; Type = ComplexType "Category"; Enums=None }
-                  { Name = "name"; Type = PrimaryType (DataType.String None); Enums=None }
-                  { Name = "photoUrls"
-                    Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
-                    Enums=None }
-                  { Name = "tags"
-                    Type = PrimaryType (DataType.Array (ComplexType "Tag"))
-                    Enums=None }
-                  { Name = "status"
-                    Type = PrimaryType (DataType.String None)
-                    Enums=Some ["available"; "pending"; "sold"]} ]
+          { Name = "Pet"
+            Properties =
+             [{ Name = "id"
+                Type = PrimaryType DataType.Integer64
+                Enums = None
+              } 
+              { Name = "category"
+                Type =
+                 ComplexType
+                   { Name = "Category"
+                     Properties = [ { Name = "id"
+                                      Type = PrimaryType DataType.Integer64
+                                      Enums = None }
+                                    { Name = "name"
+                                      Type = PrimaryType (DataType.String None)
+                                      Enums = None } ]
+                   }
+                Enums = None }
+              { Name = "name"
+                Type = PrimaryType (DataType.String None)
+                Enums = None }
+              { Name = "photoUrls"
+                Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                Enums = None }
+              { Name = "tags"
+                Type =
+                  PrimaryType
+                    (DataType.Array
+                       (ComplexType
+                          { Name = "Tag"
+                            Properties = [
+                             { Name = "id"
+                               Type = PrimaryType DataType.Integer64
+                               Enums = None }
+                             { Name = "name"
+                               Type = PrimaryType (DataType.String None)
+                               Enums = None
+                             } ]
+                          }))
+                Enums = None
+              }
+              { Name = "status"
+                Type = PrimaryType (DataType.String None)
+                Enums = Some ["available"; "pending"; "sold"]
+              }]
             }
           "definition should be equal"
       }
@@ -358,8 +467,8 @@ let tests =
         let json = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText
         let yaml = AppDomain.CurrentDomain.BaseDirectory /> "petstore.yaml" |> File.ReadAllText
         
-        let yamlSpec = YamlParser.parseSwagger yaml
-        let jsonSpec = JsonParser.parseSwagger json
+        let yamlSpec = YamlParser.parseSwagger http yaml
+        let jsonSpec = JsonParser.parseSwagger http json
 
         Expect.equal yamlSpec jsonSpec "yaml and json should give same spec"
       }
