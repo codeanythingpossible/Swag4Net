@@ -4,6 +4,12 @@ This repository contains a preview version of a .Net code generator for API cons
 
 [![romcyber MyGet Build Status](https://www.myget.org/BuildSource/Badge/romcyber?identifier=76cb3760-f717-48ad-8d1e-1c24107ff69b)](https://www.myget.org/feed/romcyber/package/nuget/Swag4Net.ClientGenerator)
 
+## Install dotnet tool
+
+```cmd
+dotnet tool install -g Swag4Net.ClientGenerator --version 1.0.0-CI00001 --add-source https://www.myget.org/F/romcyber/api/v3/index.json
+```
+
 ## Build project
 
 ```cmd
