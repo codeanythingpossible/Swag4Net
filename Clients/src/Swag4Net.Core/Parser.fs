@@ -27,10 +27,13 @@ let ParseV3 (content:string) = Swag4Net.Core.v3.JsonParser.parseSwagger content
 let Parse (content:string) =
     let json = JObject.Parse content
     if json.ContainsKey "openapi" 
-        then ParseV3 content
+        then
+            if json.ContainsKey "swagger"
+                then Error "invalid specification: duplicated standard tag"
+                else ParseV3 content
         else if json.ContainsKey "swagger"
-                then ParseV2 content
-                else Error "unable to determine file format"
+            then ParseV2 content
+            else Error "unable to determine file format"
    //json.SelectToken "openapi" 
    //     |> fun t -> if isNull t |> not
    //                     then t.Value |> string

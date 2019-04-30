@@ -5,7 +5,6 @@ open System
 open Swag4Net.Core.SpecificationModel
 
 let parseStandard (token:JToken) =
-    
     {
         Name="openapi"
         Version= token.SelectToken "openapi" |> string }
