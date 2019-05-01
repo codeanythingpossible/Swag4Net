@@ -3,7 +3,7 @@
 open Newtonsoft.Json.Linq
 open SpecificationModel
 
-let ParseV2 (content:string) = 
+let parseV2 (content:string) = 
     Ok { 
         Standard= {
             Name="swagger"
@@ -22,22 +22,27 @@ let ParseV2 (content:string) =
         Tags=None
         ExternalDocs=None }
     
-let ParseV3 (content:string) = Swag4Net.Core.v3.JsonParser.parseSwagger content
+let parseV3 (content:string) = Swag4Net.Core.v3.JsonParser.parse content
 
-let Parse (content:string) =
+let private byStandard (callback:string -> Result<'T,string>) (content:string) =
     let json = JObject.Parse content
     if json.ContainsKey "openapi" 
         then
             if json.ContainsKey "swagger"
                 then Error "invalid specification: duplicated standard tag"
-                else ParseV3 content
+                else callback "openapi"
         else if json.ContainsKey "swagger"
-            then ParseV2 content
+            then callback "swagger"
             else Error "unable to determine file format"
-   //json.SelectToken "openapi" 
-   //     |> fun t -> if isNull t |> not
-   //                     then t.Value |> string
-   //                     else if json.SelectToken "swagger" |> isnull
-   //                                 then "??" 
-   //                                 else t.Value |> string
+
+let getStandard (content:string) =
+    byStandard (fun t -> Ok t) content
+
+let parse (content:string) =
+    let selectParser standard =
+        match standard with
+        | "openapi" -> parseV3 content
+        | "swagger" -> parseV2 content
+        | _ -> Error "unhandled standard"
+    byStandard selectParser content
 

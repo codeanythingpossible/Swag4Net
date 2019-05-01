@@ -319,7 +319,6 @@ module CsharpGenerator =
             | InCookie -> Some (callCookieParam p :> StatementSyntax)
             | InHeader -> Some (callHeaderParam p :> StatementSyntax)
             | InFormData -> Some (callFormDataParam p :> StatementSyntax)
-            | _ -> None
          )
     let block = 
       SyntaxFactory.Block(
