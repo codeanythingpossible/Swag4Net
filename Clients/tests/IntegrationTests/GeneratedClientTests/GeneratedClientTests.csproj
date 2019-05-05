@@ -5,11 +5,26 @@
     <IsPackable>false</IsPackable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="playground\schemas\openapi-jsonschema.json" />
+    <None Remove="playground\schemas\psd2-api_1.3.3_20190412.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="playground\schemas\openapi-jsonschema.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="playground\schemas\psd2-api_1.3.3_20190412.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Bogus" Version="26.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="2.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.11" />
     <PackageReference Include="xunit" Version="2.3.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
