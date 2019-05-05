@@ -1,0 +1,379 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://swag4net.codingimpossible.com/v3.0.1",
+    "document": {
+        "type": "object",
+        "properties": {
+            "openapi": { "$ref": "#semantic-version" },
+            "info": { "$ref": "#info" },
+            "components": {},
+            "servers": { "type": "array", "items": { "$ref": "#server" } },
+            "paths": { "$ref": "#paths" },
+            "security": { "$ref": "security-requirement" },
+            "tags": { "type": "array", "items": { "$ref": "#tag" } },
+            "externaldocs": { "$ref": "#external-documentation" }
+        },
+        "required": ["info", "openapi", "paths"],
+        "patternProperties": {
+            "^x-": {}
+        }
+    },
+    "definitions": {
+        "server": {
+            "properties": {
+                "description": { "type": "string" },
+                "url": {
+                    "type": "string",
+                    "format": "uri-template"
+                },
+                "variables": {
+                    "additionalproperties": { "$ref": "#server-variable" }
+                }
+            },
+            "required": ["url"]
+        },
+        "externaldocumentation": {
+            "$id": "external-documentation",
+            "type": "object",
+            "properties": {
+                "description": { "type": "string" },
+                "url": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            },
+            "required": ["url"]
+        },
+        "apischema": {
+            "$id": "apischema",
+            "type": "object",
+            "properties": {
+                "title": { "type": "string" },
+                "allOf": { "type": "array", "items": { "$ref": "#apischema" } },
+                "oneOf": { "type": "array", "items": { "$ref": "#apischema" } },
+                "anyOf": { "type": "array", "items": { "$ref": "#apischema" } },
+                "not": { "type": "array", "items": { "$ref": "#apischema" } },
+                "multipleOf": { "type": "array", "items": { "$ref": "#apischema" } },
+                "items": { "$ref": "#apischema" },
+                "maximum": { "type": "integer", "minimum": 0 },
+                "exclusiveMaximum": { "type": "integer", "minimum": 0 },
+                "minimum": { "type": "integer", "minimum": 0 },
+                "exclusiveMinimum": { "type": "integer", "minimum": 0 },
+                "maxLength": { "type": "integer", "minimum": 0 },
+                "minLength": { "type": "integer", "minimum": 0 },
+                "pattern": { "type": "string" },
+                "maxItems": { "type": "integer", "minimum": 0 },
+                "minItems": { "type": "integer", "minimum": 0 },
+                "uniqueItems": { "type": "integer", "minimum": 0 },
+                "maxProperties": { "type": "integer", "minimum": 0 },
+                "minProperties": { "type": "integer", "minimum": 0 },
+                "properties": { "type": "object", "additionalProperties": { "$ref": "#apischema" } },
+                "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#apischema" } },
+                "required": { "type": "boolean" },
+                "nullable": { "type": "boolean" },
+                "enum": { "type": "array", "items": {} },
+                "format": { "type": "string" },
+                "discriminator": {
+                    "type": "object",
+                    "properties": {
+                        "propertyName": { "type": "string" },
+                        "mapping": { "type": "object", "additionalProperties": { "type": "string" } }
+                    }
+                },
+                "readonly": { "type": "boolean" },
+                "writeOnly": { "type": "boolean" },
+                "xml": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "namespace": { "type": "string", "format": "uri" },
+                        "prefix": { "type": "string" },
+                        "attribute": { "type": "boolean" },
+                        "wrapped": { "type": "boolean" }
+                    }
+                },
+                "externalDocs": { "$ref": "#external-documentation" },
+                "example": {},
+                "deprecated": { "type": "boolean" }
+            }
+        },
+        "components": {
+            "$id": "components",
+            "type": "object",
+            "properties": {
+                "schemas": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#schema" } } },
+                "responses": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#response" } } },
+                "parameters": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#parameter" } } },
+                "examples": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#example" } } },
+                "requestBodies": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#request-body" } } },
+                "headers": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#header" } } },
+                "securitySchemes": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#security-scheme" } } },
+                "links": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#link" } } },
+                "callbacks": { "type": "object", "patternProperties": { "^[a-zA-Z0-9\\.\\-_]+$.": { "$ref": "#callback" } } }
+            },
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "example": {
+            "$id": "example",
+            "properties": {
+                "summary": { "type": "string" },
+                "description": { "type": "string" },
+                "value": {},
+                "externalValue": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            }
+        },
+        "header": {
+            "allOf": [{ "$ref": "#input" }]
+        },
+        "info": {
+            "properties": {
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "termsOfService": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "contact": { "$ref": "#contact" },
+                "license": { "$ref": "#license" }
+            },
+            "required": ["title", "version"]
+        },
+        "input": {
+            "$id": "input",
+            "type": "object",
+            "properties": {
+                "required": { "type": "boolean" },
+                "deprecated": { "type": "boolean" },
+                "allowEmptyValue": { "type": "boolean" },
+                "style": { "type": "string" },
+                "explode": { "type": "boolean" },
+                "allowReserved": { "type": "boolean" },
+                "schema": { "$ref": "#apischema" },
+                "example": {},
+                "examples": { "type": "object", "additionalProperties": { "$ref": "#example" } },
+                "content": { "type": "object", "additionalProperties": { "$ref": "#media-type" }, "maxProperties": 1 }
+            },
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "link": {
+            "$id": "link",
+            "type": "object",
+            "properties": {
+                "operationRef": { "type": "string" },
+                "operationId": { "type": "string" },
+                "parameters": { "type": "object", "additionalProperties": true },
+                "requestBody": {},
+                "description": { "type": "string" },
+                "server": { "$ref": "#server" }
+            },
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "mediatype": {
+            "$id": "media-type",
+            "type": "object",
+            "properties": {
+                "schema": { "$ref": "#api-schema" },
+                "example": {},
+                "examples": { "type": "object", "additionalProperties": { "$ref": "#example" } },
+                "encoding": { "type": "object", "additionalProperties": { "$ref": "#media-type" } }
+            },
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "operation": {
+            "$id": "operation",
+            "type": "object",
+            "properties": {
+                "tags": { "type": "array", "items": { "type": "string" } },
+                "summary": { "type": "string" },
+                "description": { "type": "string" },
+                "operationid": { "type": "string" },
+                "externaldocs": { "$ref": "#external-documentation" },
+                "parameters": { "type": "array", "items": { "$ref": "#parameter" } },
+                "requestBody": { "$ref": "#request-body" },
+                "responses": { "$ref": "#responses" },
+                "callback": { "type": "object", "additionalProperties": { "$ref": "#path" } },
+                "deprecated": { "type": "boolean" },
+                "security": { "$ref": "security-requirement" },
+                "servers": { "type": "array", "items": { "$ref": "#server" } }
+            },
+            "required": ["requestBody"],
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "parameter": {
+            "$id": "parameter",
+            "type": "object",
+            "allOf": [{ "$ref": "#input" }],
+            "properties": {
+                "name": { "type": "string" },
+                "in": { "type": "string", "enum": ["cookie", "path", "query", "header"] },
+            },
+            "required": ["name"]
+        },
+        "pathitem": {
+            "$id": "path-item",
+            "properties": {
+                "summary": { "type": "string" },
+                "description": { "type": "string" },
+                "get": { "$ref": "#operation" },
+                "put": { "$ref": "#operation" },
+                "post": { "$ref": "#operation" },
+                "delete": { "$ref": "#operation" },
+                "options": { "$ref": "#operation" },
+                "head": { "$ref": "#operation" },
+                "patch": { "$ref": "#operation" },
+                "trace": { "$ref": "#operation" },
+                "servers": { "type": "array", "items": { "$ref": "#server" } },
+                "parameters": { "type": "array", "items": { "$ref": "#parameter" } }
+            }
+        },
+        "paths": {
+            "$id": "paths",
+            "type": "object",
+            "patternProperties": {
+                "^/": { "$ref": "#path-item" },
+                "^x-": {}
+            }
+        },
+        "requestBody": {
+            "$id": "request-body",
+            "properties": {
+                "description": { "type": "string" },
+                "required": { "type": "boolean" },
+                "content": {
+                    "type": "object",
+                    "additionalProperties": { "$ref": "#media-type" }
+                }
+            },
+            "required": ["content"],
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "response": {
+            "$id": "responses",
+            "type": "object",
+            "properties": {
+                "description": { "type": "string" },
+                "headers": { "type": "object", "additionalProperties": { "$ref": "header" } },
+                "content": { "type": "object", "additionalProperties": { "$ref": "media-type" } },
+                "links": { "type": "object", "additionalProperties": { "$ref": "link" } }
+            },
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "responses": {
+            "$id": "responses",
+            "type": "object",
+            "properties": {
+                "default": { "$ref": "#response" },
+                "patternProperties": {
+                    "[1-5][0-9X]{2}": { "$ref": "#response" }
+                }
+            },
+            "minProperties": 1,
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "security-scheme": {
+            "$id": "responses",
+            "type": "object",
+            "properties": {
+                "type": { "type": "string", "enum": ["apiKey", "http", "oauth2", "openIdConnect"] },
+                "description": { "type": "string" },
+                "name": { "type": "string" },
+                "in": { "type": "string", "enum": ["query", "cookie", "header"] },
+                "scheme": { "type": "string" },
+                "flows": { "type": "string" },
+                "openIdConnectUrl": { "type": "string", "format": "uri" }
+            },
+            "required": ["type"],
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "security-requirement": {
+            "$id": "server-variable",
+            "type": "object",
+            "additionalProperties": { "type": "array", "items": { "type": "string" } }
+        },
+        "server-variable": {
+            "$id": "server-variable",
+            "type": "object",
+            "properties": {
+                "enum": { "type": "array", "items": { "type": "string" } },
+                "default": { "type": "string" },
+                "description": { "type": "string" }
+            },
+            "required": ["default"],
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "semantic-version": {
+            "$id": "semantic-version",
+            "type": "string",
+            "pattern": "([1-9][0-9]*|0)\\.[0-9]+\\.[0-9]+"
+        },
+        "contact": {
+            "$id": "contact",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "email": {
+                    "type": "string",
+                    "format": "email"
+                }
+            },
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "license": {
+            "$id": "license",
+            "properties": {
+                "name": { "type": "string" },
+                "url": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            },
+            "required": ["name"],
+            "patternProperties": {
+                "^x-": {}
+            }
+        },
+        "tag": {
+            "$id": "tag",
+            "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "externalDocs": { "$ref": "#external-documentation" }
+            },
+            "required": ["name"],
+            "patternProperties": {
+                "^x-": {}
+            }
+        }
+    }
+}
