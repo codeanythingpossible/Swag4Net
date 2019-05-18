@@ -117,26 +117,36 @@ let parseInstructions (path:string) =
       Error <| sprintf "Invalid syntax '%c' at char %d" r.Head o
   path |> Seq.toList |> loop []
 
-parseInstructions "popo.lala.mamam[0].ages[35]"
-parseInstructions "lklk"
-parseInstructions "popo.lala.mamam[0dz].ages[35]"
+let p1 = parseInstructions "popo.lala.mamam[0].ages[35]"
+let p2 = parseInstructions "lklk"
+let p3 = parseInstructions "popo.lala.mamam[0dz].ages[35]"
 
-o
+let selectToken (path:string) (o:Value) = 
+  let rec loop current (l:PathInstruction list) =
+    match current,l with
+    | SObject props, [SelectMember m] -> 
+        props |> List.tryFind (fun (name,_) -> name = m) |> Option.map snd
+    | SObject props, SelectMember m :: r -> 
+        props
+        |> List.tryFind (fun (name,_) -> name = m)
+        |> Option.bind (fun (_,v) -> loop v r)
+    | SCollection values, [SelectOffset offset] -> 
+        if values.Length < offset
+        then None
+        else Some (values.Item offset)
+    | SCollection values, SelectOffset offset :: r -> 
+        if values.Length < offset
+        then None
+        else loop (values.Item offset) r
 
-// let parsePath (path:string) : PathSelect =
-//   let rec loop acc chars =
-//     let m = chars |> Array.takeWhile (fun c -> Char.IsLetterOrDigit c || c = '_' || c = '-')
-//     let p = System.String m
-//     let r = (SelectMember p) :: acc
-//     if chars.Length > m.Length
-//     then
-//       //let sep = chars.[m.Length]
-//       chars |> Array.skip (m.Length + 1) |> loop r
-//     else
-//       r
-//   path.ToCharArray() |> loop [] |> List.rev
+  path |> parseInstructions |> Result.map (fun p -> loop o p)
 
-// parsePath "popo"
-// parsePath "popo.tata"
-
+o |> selectToken "age"
+o |> selectToken "name"
+o |> selectToken "infos"
+o |> selectToken "infos.address.postalCode"
+o |> selectToken "infos.comments"
+o |> selectToken "infos.comments[0]"
+o |> selectToken "infos.comments[2]"
+o |> selectToken "infos.comments[2]"
 
