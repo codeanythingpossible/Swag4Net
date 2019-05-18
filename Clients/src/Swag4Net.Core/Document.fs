@@ -96,9 +96,21 @@ module Document =
           if values.Length < offset
           then None
           else loop (values.Item offset) r
-  
-    path |> parseInstructions |> Result.map (fun p -> loop o p)
-  
+      | _ -> None
+    match path |> parseInstructions with
+    | Error e -> None
+    | Ok p -> loop o p 
+
+  let properties =
+    function
+    | SObject props -> props
+    | _ -> []
+    
+  let someProperties =
+    function
+    | Some p -> properties p
+    | None -> []
+    
   let fromJson (json:string) =
     let rec parseProperties (o:JObject) =
       let rec toValue (token:JToken) =
@@ -109,7 +121,7 @@ module Document =
               a |> Seq.map toValue |> Seq.toList |> SCollection
           | _ -> token.ToString() |> box |> RawValue
       
-      o.Properties() :> JProperty seq 
+      o.Properties() // :> JProperty seq 
         |> Seq.map (
             fun (p:JProperty) ->
               let n = p.Name

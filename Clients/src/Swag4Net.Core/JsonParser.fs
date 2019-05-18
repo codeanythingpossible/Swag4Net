@@ -4,11 +4,12 @@ namespace Swag4Net.Core
 //https://swagger.io/docs/specification/data-models/data-types/
 
 open Models
-open Newtonsoft.Json.Linq
+//open Newtonsoft.Json.Linq
 open System
 open System.Net
 open System.Net.Http
 open System.IO
+open Document
 
 module DocumentModel =
 
@@ -41,276 +42,334 @@ module JsonParser =
 
   open DocumentModel
 
-  let readOrDefault<'t> defaultValue name (token:JToken) =
-    try
-      let node = token.Item name
-      if node |> isNull
-      then defaultValue
-      else node.ToObject<'t>()
-    with e -> 
-      raise e
+//  let readOrDefault<'t> defaultValue name (token:Value) =
+//    match token |> selectToken name with
+//    | Some (RawValue v) ->
+//        match v with
+//        | :? 't as v' -> v'
+//        | _ -> defaultValue
+//    | _ -> defaultValue
 
-  let readString name (token:JToken) =
-    let v = token.SelectToken name
-    if v |> isNull
-    then String.Empty
-    else string v
+  let readString name (token:Value) =
+    match token |> selectToken name with
+    | Some (RawValue v) -> string v
+    | _ -> String.Empty // TODO: check format
 
-  let readBool name (token:JToken) =
-    match token.SelectToken name |> string |> Boolean.TryParse with
-    | true, value -> value
-    | false, _ -> false
+  let readBool name (token:Value) =
+    match token |> selectToken name with
+    | Some (RawValue v) ->
+        match v with
+        | :? Boolean as b -> b
+        | :? String as s -> Boolean.TryParse s |> snd
+    | _ -> false // TODO: check format
 
+  let resolveRefName (path:string) =
+    path.Split '/' |> Seq.last
 
-  let readRefItem (http:HttpClient) (doc:JToken) =
-    Result.map
-      (function
+  let readRefItem (http:HttpClient) (doc:Value) rp = //: Result<(Value*string), string> Async =
+    match rp with
+    | Ok p ->
+       match p with
        | ExternalUrl(uri, a) ->
             async {
                 let! content = uri |> http.GetStringAsync |> Async.AwaitTask
-                return JObject.Parse content :> JToken
+                let v = content |> fromJson
+                let name =
+                  match a with
+                  | Some (Anchor l) -> resolveRefName l
+                  | _ -> uri.Segments |> Seq.last
+                return Ok (v, name)
             }
        | RelativePath(p, a) ->
             async {
                 let content = File.ReadAllText p
-                return JObject.Parse content :> JToken
+                let v = content |> fromJson
+                let name =
+                  match a with
+                  | Some (Anchor l) -> resolveRefName l
+                  | _ -> resolveRefName p
+                return Ok (v, name)
             }
        | InnerReference (Anchor a) -> 
             async {
                 let p = (a.Trim '/').Replace('/', '.')
-                let token = doc.SelectToken p
-                return token
+                let token = doc |> selectToken p
+                return
+                  match token with
+                  | None -> Error "path not found"
+                  | Some v -> Ok (v, resolveRefName a)
             }
-      )
+    | Error e -> async { return Error e }
 
-  let getRefItem (http:HttpClient) (doc:JObject) (path:string) =
+  let getRefItem (http:HttpClient) doc (path:string) =
     path
     |> parseReference
     |> readRefItem http doc
     
-  let parseParameterLocation (token:JToken) =
-    match token |> string with
-    | "body" -> InBody
-    | "cookie" -> InCookie
-    | "header" -> InHeader
-    | "path" -> InPath
-    | "query" -> InQuery
-    | "formData" -> InFormData
-    | s -> 
-        InQuery
-        //failwithf "Not supported parameter location '%s' in %A" s (token.ToString())
-
-  type DataTypeProvider = JToken -> DataTypeDescription
-
-  let parseSchema (parseDataType:DataTypeProvider) (d:JToken) name =
-    let properties =
-      (d.SelectToken "properties" |> JObject.FromObject).Properties()
-      |> Seq.map (                  
-          fun p ->
-            let enumValues =
-              match p.Value.SelectToken "enum" with
-              | :? JArray as a ->
-                  a.Values()
-                  |> Seq.map (fun c -> c.ToString())
-                  |> Seq.toList |> Some
-              | _ -> None
-            {
-              Name=p.Name
-              Type=parseDataType p.Value
-              Enums=enumValues
-            }
-          )
-      |> Seq.toList
-    { Name=name
-      Properties=properties }
-
-  let rec parseDataType (spec:JObject) (http:HttpClient) (o:JToken) =
+  let (|IsRawValue|_|) (v:'t) =
+    function
+    | RawValue o ->
+        match o with
+        | :? 't as rv -> Some ()
+        | _ -> None
+    | _ -> None
     
-    let (|Ref|_|) (token:JToken) =
+  let parseParameterLocation (v:Value) =
+    match v with
+    | IsRawValue "body" -> Ok InBody
+    | IsRawValue "cookie" -> Ok InCookie
+    | IsRawValue "header" -> Ok InHeader
+    | IsRawValue "path" -> Ok InPath
+    | IsRawValue "query" -> Ok InQuery
+    | IsRawValue "formData" -> Ok InFormData
+    | s -> Error <| sprintf "Not supported parameter location '%A'" s
+
+  let parseParameterLocation' (v:Value option) =
+    v |> Option.map parseParameterLocation
+  
+  type DataTypeProvider = Value -> Result<DataTypeDescription,string>
+
+  let parseSchema (parseDataType:DataTypeProvider) (d:Value) name =
+    match d |> selectToken "properties" with
+    | Some (SObject o) ->
+        let properties =
+          o |> Seq.choose (                  
+              fun (name,value) ->
+                let enumValues =
+                  match value |> selectToken "enum" with
+                  | Some (SCollection a) ->
+                      a
+                      |> Seq.map (fun c -> c.ToString())
+                      |> Seq.toList
+                      |> Some
+                  | _ -> None
+                match parseDataType value with
+                | Ok t ->
+                    Some
+                      { Name=name
+                        Type=t
+                        Enums=enumValues }
+                | _ -> None
+              )
+          |> Seq.toList
+        Ok { Name=name
+             Properties=properties }
+    | _ -> Error "Cannot parse schema"
+
+  let rec parseDataType (spec:Value) (http:HttpClient) (o:Value) =
+    
+    let (|Ref|_|) (token:Value) =
       match token |> readString "$ref" with
       | r when System.String.IsNullOrWhiteSpace r -> None
       | r -> r |> parseReference |> Some
     
-    let (|IsType|_|) name (token:JToken) =
+    let (|IsType|_|) name (token:Value) =
       match token |> readString "type" with
       | s when s.Equals(name, StringComparison.InvariantCultureIgnoreCase) -> Some ()
       | _ -> None
 
-    let (|IsFormat|_|) name (token:JToken) =
+    let (|IsFormat|_|) name (token:Value) =
       match token |> readString "format" with
       | s when s.Equals(name, StringComparison.InvariantCultureIgnoreCase) -> Some ()
       | _ -> None
     
     match o with
-    | IsType "integer" & IsFormat "int32" -> PrimaryType DataType.Integer
-    | IsType "integer" & IsFormat "int64" -> PrimaryType DataType.Integer64
-    | IsType "string" & IsFormat "date-time" -> DataType.String (Some StringFormat.DateTime) |> PrimaryType
-    | IsType "string" & IsFormat "date" -> DataType.String (Some StringFormat.Date) |> PrimaryType
-    | IsType "string" & IsFormat "password" -> DataType.String (Some StringFormat.Password) |> PrimaryType
-    | IsType "string" & IsFormat "byte" -> DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType
-    | IsType "string" & IsFormat "binary" -> DataType.String (Some StringFormat.Binary) |> PrimaryType
-    | IsType "string" -> DataType.String None |> PrimaryType
-    | IsType "boolean" -> DataType.Boolean |> PrimaryType
+    | IsType "integer" & IsFormat "int32" -> DataType.Integer |> PrimaryType |> Ok
+    | IsType "integer" & IsFormat "int64" -> DataType.Integer64 |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "date-time" -> DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "date" -> DataType.String (Some StringFormat.Date) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "password" -> DataType.String (Some StringFormat.Password) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "byte" -> DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "binary" -> DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
+    | IsType "string" -> DataType.String None |> PrimaryType |> Ok
+    | IsType "boolean" -> DataType.Boolean |> PrimaryType |> Ok
     | IsType "array" -> 
-        (o.SelectToken "items")
-        |> parseDataType spec http
-        |> DataType.Array
-        |> PrimaryType
+        match o |> selectToken "items" with
+        | None -> Error "Could not resolve array items"
+        | Some v -> v |> parseDataType spec http |> Result.map (DataType.Array >> PrimaryType)
     | Ref ref -> 
         let r = 
           ref 
           |> readRefItem http spec 
-          |> Result.map Async.RunSynchronously
+          |> Async.RunSynchronously
         match r with
-        | Ok token -> 
-            let name = 
-              if token.Parent |> isNull |> not && token.Parent.Type = JTokenType.Property
-              then (token.Parent :?> JProperty).Name
-              else failwithf "Not implemented" //TODO: resolve name from context
-            if token.SelectToken "properties" |> isNull |> not
-            then
-              let p = parseDataType spec http
-              parseSchema p token name |> ComplexType
-            else parseDataType spec http token
+        | Ok (token, name) -> 
+            match token |> selectToken "properties" with
+            | Some v ->
+                  parseDataType spec http v
+                  |> Result.bind (
+                       fun dt ->
+                         let provider = parseDataType spec http 
+                         parseSchema provider v name |> Result.map ComplexType
+                     )
+            | None -> parseDataType spec http token
 
-        | Error _ -> DataType.Object |> PrimaryType //TODO: return errors
-        //ref.Split '/' |> Seq.last |> ComplexType
+        | Error e -> Error e
+    | _ -> Error "Could not resolve data type"
 
-    | _ -> DataType.Object |> PrimaryType
-
-
-  let parseSchemas (spec:JObject) http (o:JObject) =
-    o.Properties()
+  let parseSchemas (spec:Value) http (SObject o) =
+    o
     |> Seq.map (
-        fun d ->
+        fun (name,v) ->
           let p = parseDataType spec http
-          parseSchema p d.Value d.Name
+          parseSchema p v name
       )
     |> Seq.toList
 
-  let parseResponses (spec:JObject) http (token:JToken) =
-    if token |> isNull
-    then []
-    else 
-      token |> JObject.FromObject |> fun c -> c.Properties()
-      |> Seq.choose (
-          fun c ->
-            let v = c.Value
-            if v |> isNull
-            then None
-            else
+  let parseResponses (spec:Value) http (token:Value) =
+    match token with
+    | SObject props ->
+        props
+        |> Seq.choose (
+            fun (name, v) ->
               let rsType = 
-                match v.SelectToken "schema" with
-                | s when s |> isNull -> 
-                    match v.SelectToken "content" with
-                    | c when c |> isNull -> None
-                    | :? JContainer as c -> 
-                      let schema = 
-                        c.Descendants()
-                        |> Seq.filter(fun t -> t.Type = JTokenType.Property && (t :?> JProperty).Name = "schema")
+                match v |> selectToken "schema" with
+                | None -> 
+                    match v |> selectToken "content" with
+                    | Some (SObject content) ->
+                        content
+                        |> Seq.choose (
+                             fun (mimetype, c) ->
+                                match c |> selectToken "schema" with
+                                | Some cv -> Some (parseDataType spec http cv)
+                                | _ -> None
+                           )
                         |> Seq.tryHead
-                      schema |> Option.map (fun s -> s.First |> parseDataType spec http)
                     | _ -> None
-                | s -> s |> parseDataType spec http |> Some
-              match Enum.TryParse<HttpStatusCode> c.Name with
-              | false, _ when c.Name |> String.IsNullOrEmpty |> not && c.Name.Equals("default", StringComparison.InvariantCultureIgnoreCase) -> 
+                | Some s -> s |> parseDataType spec http |> Some
+              let rsType' = match rsType with | Some (Ok v) -> Some v | _ -> None 
+              match Enum.TryParse<HttpStatusCode> name with
+              | false, _ when name |> String.IsNullOrEmpty |> not && name.Equals("default", StringComparison.InvariantCultureIgnoreCase) -> 
                   Some 
                     { Code = AnyStatusCode
                       Description = v |> readString "description"
-                      Type = rsType }
+                      Type = rsType' }
               | false, _ -> None
               | true, code -> 
                   Some 
                     { Code = StatusCode code
                       Description = v |> readString "description"
-                      Type = rsType }
-      ) |> Seq.toList
+                      Type = rsType' }
+          ) |> Seq.toList
+    | _ -> []
 
-  let parseParameters (spec:JObject) http (token:JToken) =
-    if token |> isNull
-    then []
-    else
-      token.Children()
-      |> Seq.map (
-          fun c ->
-            let typ =
-              match c.Item "schema" with
-              | t when t |> isNull -> parseDataType spec http c
-              | t -> parseDataType spec http t
-  
-            { Location = c.Item "in" |> parseParameterLocation
-              Name = c |> readString "name"
-              Description = c |> readString "description"
-              Deprecated = c |> readBool "deprecated"
-              AllowEmptyValue = c |> readBool "allowEmptyValue"
-              ParamType = typ
-              Required = c |> readBool "required" }
-         )
-      |> Seq.toList
-
-  let parseRoutes http (spec:JObject) =
-    let paths = spec.Item "paths" |> JObject.FromObject
-    paths.Properties()
-    |> Seq.collect(
-         fun path ->
-          let po = path.Value |> JObject.FromObject
-          po.Properties()
+  let parseParameters (spec:Value) http (token:Value) =
+    match token with
+    | SObject props ->
+        props
           |> Seq.choose (
-              fun prop ->
-                let route = prop.Value
-                let verb = prop.Name.ToLowerInvariant()
+              fun (n,c) ->
+                let typ =
+                  match c |> selectToken "schema" with
+                  | None -> parseDataType spec http c
+                  | Some t -> parseDataType spec http t
+                let l =
+                  match c |> selectToken "in" |> parseParameterLocation' with
+                  | Some (Ok v) -> v
+                  | _ -> InQuery
+                match typ with
+                | Ok t ->
+                    Some
+                      { Location = l
+                        Name = c |> readString "name"
+                        Description = c |> readString "description"
+                        Deprecated = c |> readBool "deprecated"
+                        AllowEmptyValue = c |> readBool "allowEmptyValue"
+                        ParamType = t
+                        Required = c |> readBool "required" }
+                | _ -> None
+             )
+          |> Seq.toList
+    | _ -> []
+
+  let readStringList =
+    function
+    | Some (SCollection values) ->
+        values
+        |> List.choose (
+             function
+             | RawValue v when isNull v -> None
+             | RawValue v -> Some (string v)
+             | _ -> None
+             )
+    | _ -> []
+  
+  let parseRoutes http (spec:Value) =
+    spec
+    |> selectToken "paths"
+    |> someProperties
+    |> Seq.collect(
+         fun (path,value) ->
+          value
+          |> properties
+          |> Seq.choose (
+              fun (n,route) ->
+                let verb = n.ToLowerInvariant()
                 if ["get";"post";"put";"patch";"head";"delete";"options";"trace"] |> List.contains verb
                 then
                   Some
                     { Verb = verb
-                      Path = path.Name
-                      Tags = route |> readOrDefault<string list> [] "tags"
+                      Path = path
+                      Tags = route |> selectToken "tags" |> readStringList
                       Summary = route |> readString "summary"
                       Description = route |> readString "description"
                       OperationId = route |> readString "operationId"
-                      Consumes = route |> readOrDefault<string list> [] "consumes"
-                      Produces = route |> readOrDefault<string list> [] "produces"
-                      Responses = route.Item "responses" |> parseResponses spec http
-                      Parameters = route.Item "parameters" |> parseParameters spec http
+                      Consumes = route |> selectToken "consumes" |> readStringList
+                      Produces = route |> selectToken "produces" |> readStringList
+                      Responses = match route |> selectToken "responses" with | Some t -> parseResponses spec http t | None -> []
+                      Parameters = match route |> selectToken "parameters" with | Some t -> parseParameters spec http t | None -> []
                     }
                 else None
               )
        )
     |> Seq.toList
   
-  let parseInfos (json:JObject) =
-    let contact = json.SelectToken "info.contact.email" |> string
-    let license = "info.license" |>json.SelectToken |> fun t -> if isNull t then None else Some (t.ToObject<License>())
-    { Description=json.SelectToken "info.description" |> string
-      Version=json.SelectToken "info.version" |> string
-      Title=json.SelectToken "info.title" |> string
-      TermsOfService=json.SelectToken "info.termsOfService" |> string
-      Contact= Some (Email contact)
-      License=license }
+  let readLicense =
+    Option.map (
+      fun v ->
+        { Name = readString "name" v
+          Url = readString "url" v }
+      )
+  
+  let parseInfos model =
+    let contact = model |> readString "info.contact.email"
+    let license = model |> selectToken "info.license" |> readLicense
+    { Description = model |> readString "info.description"
+      Version = model |> readString "info.version"
+      Title = model |> readString "info.title"
+      TermsOfService = model |> readString "info.termsOfService"
+      Contact = Some (Email contact)
+      License = license }
 
   let parseSwagger http (content:string) =
-    let spec = JObject.Parse content
+    let spec = content |> fromJson
     let infos = parseInfos spec
-    let definitions = spec.Item "definitions" |> JObject.FromObject |> parseSchemas spec http
+    let definitions =
+      match spec |> selectToken "definitions" with
+      | Some (SObject o) ->
+          parseSchemas spec http (SObject o)
+          |> List.choose (function | Ok s -> Some s | _ -> None)
+      | _ -> []
+    
     let routes = parseRoutes http spec
-    { Infos=infos
-      Host=spec.SelectToken "host" |> string
-      BasePath=spec.SelectToken "basePath" |> string
-      Schemes= "schemes" |>spec.SelectToken |> fun t -> if isNull t then [] else t.ToObject<string list>()
-      ExternalDocs=Map.empty
-      Routes=routes
-      Definitions=definitions }
+    { Infos = infos
+      Host = spec |> readString "host"
+      BasePath = spec |> readString "basePath"
+      Schemes = spec |> selectToken "schemes" |> readStringList
+      ExternalDocs = Map.empty
+      Routes = routes
+      Definitions = definitions }
 
   let parseOpenApiV3 http (content:string) =
-    let spec = JObject.Parse content
+    let spec = content |> fromJson
     let infos = parseInfos spec
     let routes = parseRoutes http spec
 
-    { Infos=infos
-      Host=spec.SelectToken "host" |> string
-      BasePath=spec.SelectToken "basePath" |> string
-      Schemes= "schemes" |>spec.SelectToken |> fun t -> if isNull t then [] else t.ToObject<string list>()
-      ExternalDocs=Map.empty
-      Routes=routes
-      Definitions=[] }
+    { Infos = infos
+      Host = spec |> readString "host"
+      BasePath = spec |> readString "basePath"
+      Schemes = spec |> selectToken "schemes" |> readStringList
+      ExternalDocs = Map.empty
+      Routes = routes
+      Definitions = [] }
 

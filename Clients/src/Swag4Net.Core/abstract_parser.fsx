@@ -2,7 +2,7 @@
 #r "netstandard.dll"
 #r "../../packages/newtonsoft.json/12.0.1/lib/netstandard2.0/newtonsoft.json.dll"
 #r "../../packages/YamlDotNet/6.0.0/lib/netstandard1.3/YamlDotNet.dll"
-#r "System.Net.Http"
+#r "System.Net.Http.dll"
 
 open YamlDotNet
 open YamlDotNet.Serialization
@@ -42,25 +42,6 @@ let rec parseProperties (o:JObject) =
        let v = p.Value |> toValue
        n,v
     ) |> Seq.toList |> SObject
-
-
-let o = 
-    """{
-        "name":"toto",
-        "age": 20,
-        "infos": {
-                "address": {
-                    "city": "paris",
-                    "postalCode":"75020"
-                },
-                "comments":
-                    [
-                        "coucou ça va ?",
-                        "nickel",
-                        123
-                    ]
-            }
-    }""" |> JObject.Parse |> parseProperties
 
 type PathInstruction =
   | SelectMember of string
@@ -138,15 +119,62 @@ let selectToken (path:string) (o:Value) =
         if values.Length < offset
         then None
         else loop (values.Item offset) r
+    | _ -> None
+  match path |> parseInstructions with
+  | Error e -> None
+  | Ok p -> loop o p
 
-  path |> parseInstructions |> Result.map (fun p -> loop o p)
-
+  
+let o = 
+    """{
+        "name":"toto",
+        "age": 20,
+        "infos": {
+                "address": {
+                    "city": "paris",
+                    "postalCode":"75020"
+                },
+                "comments":
+                    [
+                        "coucou ça va ?",
+                        "nickel",
+                        123
+                    ]
+            }
+    }""" |> JObject.Parse |> parseProperties
+  
 o |> selectToken "age"
 o |> selectToken "name"
-o |> selectToken "infos"
+let model = o |> selectToken "infos"
 o |> selectToken "infos.address.postalCode"
-o |> selectToken "infos.comments"
 o |> selectToken "infos.comments[0]"
 o |> selectToken "infos.comments[2]"
 o |> selectToken "infos.comments[2]"
+
+let c = o |> selectToken "infos.comments"
+
+match c with
+| Some (SCollection values) ->
+    values
+    |> List.choose (
+         function
+         | RawValue v when isNull v -> None
+         | RawValue v -> Some (string v)
+         | _ -> None
+         )
+| _ -> []
+
+type Address = 
+  { City:string; PostalCode:string }
+
+//let toObject<'t> model =
+//  let rec bind<'pt> v =
+//    match v with
+//    | SObject props ->
+        
+//    ()
+//  Activator.CreateInstance(typeof<'t>)
+//  bind model
+
+//let a = model |> toObject<Address>
 

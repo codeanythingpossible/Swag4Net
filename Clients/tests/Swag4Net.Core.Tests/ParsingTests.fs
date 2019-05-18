@@ -12,11 +12,12 @@ open Models
 open Swag4Net.Core
 open System
 open Expecto
+open Swag4Net.Core
 
 let (/>) a b = Path.Combine(a, b)
 
 let http = new HttpClient()
-let spec = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText |> JObject.Parse
+let spec = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText |> Document.fromJson
 
 let tests =
   testList "spec parsing tests" [
@@ -32,7 +33,7 @@ let tests =
                 "put": { }
                 }
               }
-           }""" |> JObject.Parse |> JsonParser.parseRoutes http
+           }""" |> Document.fromJson |> JsonParser.parseRoutes http
         Expect.equal routes.Length 3 "routes count should match"
       }
       
@@ -90,7 +91,7 @@ let tests =
                 }
               }
             }
-           }""" |> JObject.Parse |> JsonParser.parseRoutes http |> Seq.head
+           }""" |> Document.fromJson |> JsonParser.parseRoutes http |> Seq.head
         
         Expect.equal route.Path "/pet" "path should be equal"
         Expect.equal route.Summary "Add a new pet to the store" "summary should be equal"
@@ -136,7 +137,7 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int32"
-            } ]""" |> JArray.Parse |> JsonParser.parseParameters spec http |> List.head
+            } ]""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
             
           Expect.equal parameter
               { Location=InPath
@@ -158,7 +159,7 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int64"
-            } ]""" |> JArray.Parse |> JsonParser.parseParameters spec http |> List.head
+            } ]""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
             
           Expect.equal parameter
               { Location=InPath
@@ -174,71 +175,71 @@ let tests =
         test "Parsing int64 data type" {
           let actual =
             """{ "type": "integer", "format": "int64" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType DataType.Integer64) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType DataType.Integer64)) "data type should be equal"
         }
         
         test "Parsing int32 data type" {
           let actual =
             """{ "type": "integer", "format": "int32" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType DataType.Integer) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType DataType.Integer)) "data type should be equal"
         }
         
         test "Parsing boolean data type" {
           let actual =
             """{ "type": "boolean" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType DataType.Boolean) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType DataType.Boolean)) "data type should be equal"
         }    
         
         test "Parsing string data type" {
           let actual =
             """{ "type": "string" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String None)) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok (PrimaryType (DataType.String None))) "data type should be equal"
         }
         
         test "Parsing string data type with invalid format should fallback to simple string" {
           let actual =
             """{ "type": "string", "format": "lalala" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String None)) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType (DataType.String None))) "data type should be equal"
         }
               
         test "Parsing string data type with date format" {
           let actual =
             """{ "type": "string", "format": "date" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Date))) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Date)))) "data type should be equal"
         }
   
         test "Parsing string data type with datetime format" {
           let actual =
             """{ "type": "string", "format": "date-time" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.DateTime))) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.DateTime)))) "data type should be equal"
         }
   
         test "Parsing string data type with password format" {
           let actual =
             """{ "type": "string", "format": "password" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Password))) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Password)))) "data type should be equal"
         }
         
         test "Parsing string data type with binary format" {
           let actual =
             """{ "type": "string", "format": "binary" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Binary))) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Binary)))) "data type should be equal"
         }
         
         test "Parsing string data type with byte format" {
           let actual =
             """{ "type": "string", "format": "byte" }"""
-            |> JObject.Parse |> JsonParser.parseDataType spec http
-          Expect.equal actual (PrimaryType (DataType.String (Some StringFormat.Base64Encoded))) "data type should be equal"
+            |> Document.fromJson |> JsonParser.parseDataType spec http
+          Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Base64Encoded)))) "data type should be equal"
         }
         
       ]
@@ -258,7 +259,7 @@ let tests =
             "404": {
               "description": "Pet not found"
             }
-          }""" |> JObject.Parse |> JsonParser.parseResponses spec http
+          }""" |> Document.fromJson |> JsonParser.parseResponses spec http
         Expect.sequenceEqual responses
             [
               {
@@ -341,14 +342,14 @@ let tests =
                 }
               }
             } }"""
-          |> JObject.Parse |> JsonParser.parseSchemas spec http |> Seq.head
+          |> Document.fromJson |> JsonParser.parseSchemas spec http |> Seq.head
         Expect.equal actual
-            { Name="ApiResponse"
-              Properties=
-                [ { Name = "code"; Type = PrimaryType DataType.Integer; Enums=None }
-                  { Name = "type"; Type = PrimaryType (DataType.String None); Enums=None }
-                  { Name = "message"; Type = PrimaryType (DataType.String None); Enums=None } ]
-            }
+            (Ok { Name="ApiResponse"
+                  Properties=
+                    [ { Name = "code"; Type = PrimaryType DataType.Integer; Enums=None }
+                      { Name = "type"; Type = PrimaryType (DataType.String None); Enums=None }
+                      { Name = "message"; Type = PrimaryType (DataType.String None); Enums=None } ]
+                })
           "definition should be equal"
       }
       
@@ -407,55 +408,56 @@ let tests =
                   }
                 }
               }"""
-          |> JObject.Parse |> JsonParser.parseSchemas spec http |> Seq.head
+          |> Document.fromJson |> JsonParser.parseSchemas spec http |> Seq.head
 
         Expect.equal actual
-          { Name = "Pet"
-            Properties =
-             [{ Name = "id"
-                Type = PrimaryType DataType.Integer64
-                Enums = None
-              } 
-              { Name = "category"
-                Type =
-                 ComplexType
-                   { Name = "Category"
-                     Properties = [ { Name = "id"
-                                      Type = PrimaryType DataType.Integer64
-                                      Enums = None }
-                                    { Name = "name"
-                                      Type = PrimaryType (DataType.String None)
-                                      Enums = None } ]
-                   }
-                Enums = None }
-              { Name = "name"
-                Type = PrimaryType (DataType.String None)
-                Enums = None }
-              { Name = "photoUrls"
-                Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
-                Enums = None }
-              { Name = "tags"
-                Type =
-                  PrimaryType
-                    (DataType.Array
-                       (ComplexType
-                          { Name = "Tag"
-                            Properties = [
-                             { Name = "id"
-                               Type = PrimaryType DataType.Integer64
-                               Enums = None }
-                             { Name = "name"
-                               Type = PrimaryType (DataType.String None)
-                               Enums = None
-                             } ]
-                          }))
-                Enums = None
-              }
-              { Name = "status"
-                Type = PrimaryType (DataType.String None)
-                Enums = Some ["available"; "pending"; "sold"]
-              }]
-            }
+          (Ok
+            { Name = "Pet"
+              Properties =
+               [{ Name = "id"
+                  Type = PrimaryType DataType.Integer64
+                  Enums = None
+                } 
+                { Name = "category"
+                  Type =
+                   ComplexType
+                     { Name = "Category"
+                       Properties = [ { Name = "id"
+                                        Type = PrimaryType DataType.Integer64
+                                        Enums = None }
+                                      { Name = "name"
+                                        Type = PrimaryType (DataType.String None)
+                                        Enums = None } ]
+                     }
+                  Enums = None }
+                { Name = "name"
+                  Type = PrimaryType (DataType.String None)
+                  Enums = None }
+                { Name = "photoUrls"
+                  Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                  Enums = None }
+                { Name = "tags"
+                  Type =
+                    PrimaryType
+                      (DataType.Array
+                         (ComplexType
+                            { Name = "Tag"
+                              Properties = [
+                               { Name = "id"
+                                 Type = PrimaryType DataType.Integer64
+                                 Enums = None }
+                               { Name = "name"
+                                 Type = PrimaryType (DataType.String None)
+                                 Enums = None
+                               } ]
+                            }))
+                  Enums = None
+                }
+                { Name = "status"
+                  Type = PrimaryType (DataType.String None)
+                  Enums = Some ["available"; "pending"; "sold"]
+                }]
+              })
           "definition should be equal"
       }
     ]
