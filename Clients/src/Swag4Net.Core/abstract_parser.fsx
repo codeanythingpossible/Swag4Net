@@ -142,7 +142,9 @@ let o =
                     ]
             }
     }""" |> JObject.Parse |> parseProperties
-  
+
+//JObject.Parse """[]"""
+
 o |> selectToken "age"
 o |> selectToken "name"
 let model = o |> selectToken "infos"

@@ -121,7 +121,7 @@ module Document =
               a |> Seq.map toValue |> Seq.toList |> SCollection
           | _ -> token.ToString() |> box |> RawValue
       
-      o.Properties() // :> JProperty seq 
+      o.Properties()
         |> Seq.map (
             fun (p:JProperty) ->
               let n = p.Name

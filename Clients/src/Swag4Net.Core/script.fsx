@@ -3,6 +3,7 @@
 #r "../../packages/YamlDotNet/6.0.0/lib/netstandard1.3/YamlDotNet.dll"
 #r "System.Net.Http.dll"
 
+#load "Document.fs"
 #load "Models.fs"
 #load "JsonParser.fs"
 #load "YamlParser.fs"
@@ -22,19 +23,61 @@ open Models
 
 let (/>) a b = Path.Combine(a, b)
 
-let specv2File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "petstore.yaml"
-let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.yaml"
-
-let readYamlAsJson =
-  File.ReadAllText
-  >> Deserializer().Deserialize<obj>
-  >> JsonConvert.SerializeObject
+// let specv2File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "petstore.yaml"
+// let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.yaml"
 
 let http = new HttpClient()
 
-let specv2 = specv2File |> readYamlAsJson |> JsonParser.parseSwagger http
-specv2.Routes |> List.find(fun r -> r.Path = "/pet/{petId}") |> fun r -> r.Responses
-
-let specv3 = specv3File |> readYamlAsJson |> JsonParser.parseOpenApiV3 http
-specv3.Routes |> List.find(fun r -> r.Path = "/pets/{petId}") |> fun r -> r.Responses
+let route = 
+           """{
+           "paths": {
+            "/pet": {
+               "post": {
+                    "tags": [
+                      "pet"
+                    ],
+                    "summary": "Add a new pet to the store",
+                    "description": "this is cool",
+                    "operationId": "addPet",
+                    "consumes": [
+                      "application/json",
+                      "application/xml"
+                    ],
+                    "produces": [
+                      "application/xml",
+                      "application/json"
+                    ],
+                    "parameters": [
+                      {
+                        "in": "query",
+                        "name": "body",
+                        "description": "Pet object that needs to be added to the store",
+                        "required": true,
+                        "type": "string"
+                      }
+                    ],
+                    "responses": {
+                      "405": {
+                        "description": "Invalid input"
+                      }
+                    }
+                  }
+                }
+              },
+            "definitions": {
+              "Pet": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "doggie"
+                  }
+                }
+              }
+            }
+           }""" |> Document.fromJson |> JsonParser.parseRoutes http |> Seq.head
 

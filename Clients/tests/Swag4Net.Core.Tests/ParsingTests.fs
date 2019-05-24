@@ -130,14 +130,14 @@ let tests =
         
         test "Parsing int32 path param" {
           let parameter = 
-            """[ {
+            """{
               "name": "petId",
               "in": "path",
               "description": "ID of pet to return",
               "required": true,
               "type": "integer",
               "format": "int32"
-            } ]""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
+            }""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
             
           Expect.equal parameter
               { Location=InPath
@@ -152,14 +152,14 @@ let tests =
         
         test "Parsing int64 path param" {
           let parameter = 
-            """[ {
+            """{
               "name": "petId",
               "in": "path",
               "description": "ID of pet to return",
               "required": true,
               "type": "integer",
               "format": "int64"
-            } ]""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
+            }""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
             
           Expect.equal parameter
               { Location=InPath

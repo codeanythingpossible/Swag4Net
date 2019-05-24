@@ -253,6 +253,28 @@ module JsonParser =
           ) |> Seq.toList
     | _ -> []
 
+  let parseParameter (spec:Value) http (props:SProperty list) =
+    let c = SObject props
+    let typ =
+      match c |> selectToken "schema" with
+      | None -> parseDataType spec http c
+      | Some t -> parseDataType spec http t
+    let l =
+      match c |> selectToken "in" |> parseParameterLocation' with
+      | Some (Ok v) -> v
+      | _ -> InQuery
+    match typ with
+    | Ok t ->
+        Some
+          { Location = l
+            Name = c |> readString "name"
+            Description = c |> readString "description"
+            Deprecated = c |> readBool "deprecated"
+            AllowEmptyValue = c |> readBool "allowEmptyValue"
+            ParamType = t
+            Required = c |> readBool "required" }
+    | _ -> None
+
   let parseParameters (spec:Value) http (token:Value) =
     match token with
     | SObject props ->
@@ -280,7 +302,15 @@ module JsonParser =
                 | _ -> None
              )
           |> Seq.toList
-    | _ -> []
+    | SCollection items -> 
+        items |> List.choose (
+            function 
+            | SObject props -> parseParameter spec http props
+            | _ -> None
+          )
+    | o -> 
+      printfn "o: %A" o
+      []
 
   let readStringList =
     function
