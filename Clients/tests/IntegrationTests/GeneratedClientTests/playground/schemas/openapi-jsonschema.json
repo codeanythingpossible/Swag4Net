@@ -156,6 +156,7 @@
         "example": {},
         "deprecated": { "type": "boolean" }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -263,6 +264,7 @@
           }
         }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -289,6 +291,7 @@
           "format": "email"
         }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -309,12 +312,14 @@
         "style": { "type": "string" },
         "explode": { "type": "boolean" },
         "allowReserved": { "type": "boolean" },
+        "additionalProperties": false,
         "patternProperties": {
           "^x-": {}
         }
       }
-    }, 
+    },
     "example": {
+      "type": "object",
       "properties": {
         "summary": { "type": "string" },
         "description": { "type": "string" },
@@ -323,6 +328,10 @@
           "type": "string",
           "format": "uri"
         }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
       }
     },
     "external-documentation": {
@@ -334,13 +343,18 @@
           "format": "uri"
         }
       },
-      "required": [ "url" ]
+      "required": [ "url" ],
+      "additionalProperties": false
     },
     "header": {
-      "allOf": [ { "$ref": "#/definitions/input" } ]
+      "type": "object",
+      "allOf": [ { "$ref": "#/definitions/input" } ],
+      "additionalProperties": false
     },
     "info": {
+      "type": "object",
       "properties": {
+        "version": { "$ref": "#/definitions/semantic-version" },
         "title": { "type": "string" },
         "description": { "type": "string" },
         "termsOfService": {
@@ -350,6 +364,7 @@
         "contact": { "$ref": "#/definitions/contact" },
         "license": { "$ref": "#/definitions/license" }
       },
+      "additionalProperties": false,
       "required": [ "title", "version" ]
     },
     "input": {
@@ -383,11 +398,13 @@
           "maxProperties": 1
         }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
     },
     "license": {
+      "type": "object",
       "properties": {
         "name": { "type": "string" },
         "url": {
@@ -396,6 +413,7 @@
         }
       },
       "required": [ "name" ],
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -413,6 +431,7 @@
         "description": { "type": "string" },
         "server": { "$ref": "#/definitions/server" }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -441,6 +460,7 @@
           "additionalProperties": { "$ref": "#/definitions/encoding" }
         }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -454,8 +474,8 @@
         },
         "summary": { "type": "string" },
         "description": { "type": "string" },
-        "operationid": { "type": "string" },
-        "externaldocs": { "$ref": "#/definitions/external-documentation" },
+        "operationId": { "type": "string" },
+        "externalDocs": { "$ref": "#/definitions/external-documentation" },
         "parameters": {
           "type": "array",
           "items": {
@@ -489,6 +509,7 @@
         }
       },
       "required": [ "responses" ],
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -503,6 +524,7 @@
           "enum": [ "cookie", "path", "query", "header" ]
         }
       },
+      "additionalProperties": false,
       "required": [ "name", "in" ]
     },
     "path-item": {
@@ -530,10 +552,12 @@
             ]
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "paths": {
       "type": "object",
+      "additionalProperties": false,
       "patternProperties": {
         "^/": { "$ref": "#/definitions/path-item" },
         "^x-": {}
@@ -545,6 +569,7 @@
           "type": "string"
         }
       },
+      "additionalProperties": false,
       "required": [ "$ref" ]
     },
     "request-body": {
@@ -557,6 +582,7 @@
         }
       },
       "required": [ "content" ],
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -578,6 +604,7 @@
           "additionalProperties": { "$ref": "#/definitions/link" }
         }
       },
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -585,15 +612,24 @@
     "responses": {
       "type": "object",
       "properties": {
-        "default": { "$ref": "#/definitions/response" },
-        "patternProperties": {
-          "[1-5][0-9X]{2}": { "$ref": "#/definitions/response" }
+        "default": {
+          "oneOf": [
+            { "$ref": "#/definitions/response" },
+            { "$ref": "#/definitions/reference" }
+          ]
         }
       },
-      "minProperties": 1,
       "patternProperties": {
+        "^[1-5][0-9X]{2}": {
+          "oneOf": [
+            { "$ref": "#/definitions/response" },
+            { "$ref": "#/definitions/reference" }
+          ]
+        },
         "^x-": {}
-      }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
     },
     "security-requirement": {
       "type": "object",
@@ -623,6 +659,7 @@
         }
       },
       "required": [ "type" ],
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -643,6 +680,7 @@
           "additionalProperties": { "$ref": "#/definitions/server-variable" }
         }
       },
+      "additionalProperties": false,
       "required": [ "url" ]
     },
     "server-variable": {
@@ -656,6 +694,7 @@
         "description": { "type": "string" }
       },
       "required": [ "default" ],
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
@@ -667,12 +706,14 @@
         "externalDocs": { "$ref": "#/definitions/external-documentation" }
       },
       "required": [ "name" ],
+      "additionalProperties": false,
       "patternProperties": {
         "^x-": {}
       }
     }
 
   },
+  "additionalProperties": false,
   "patternProperties": {
     "^x-": {}
   },
@@ -693,7 +734,7 @@
       "type": "array",
       "items": { "$ref": "#/definitions/tag" }
     },
-    "externaldocs": { "$ref": "#/definitions/external-documentation" }
+    "externalDocs": { "$ref": "#/definitions/external-documentation" }
   },
   "required": [ "info", "openapi", "paths" ],
   "title": "open api v3 specification schema",

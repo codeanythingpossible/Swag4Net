@@ -9,6 +9,9 @@ using Xunit.Abstractions;
 
 namespace GeneratedClientTests
 {
+    /// <summary>
+    /// https://json-schema.org/understanding-json-schema/
+    /// </summary>
     public class JsonSchemaTest
     {
         private readonly ITestOutputHelper _output;
@@ -31,39 +34,10 @@ namespace GeneratedClientTests
         {
             JSchema schema = JSchema.Parse(@"{
               'properties': {
-                'description': { 'type': 'string' },
-                'required': { 'type': 'boolean' },
-                'content': {
-                  'type': 'object',
-                  'additionalProperties': {
-                          'type': 'object',
-                          'properties': {
-                            'schema': {
-                              'oneOf': [
-                                { 'type': 'object',
-                                  'properties': {
-                                    'title': { 'type': 'string' } } },
-                                {
-                                  'properties': {
-                                    '$ref': {
-                                      'type': 'string'
-                                    }
-                                  },
-                                  'required': [ '$ref' ]
-                                }
-                              ]
-                            }
-                          },
-                          'patternProperties': {
-                            '^x-': {}
-                          }
-                        }
-                }
+                'description': { 'type': 'string' }
               },
-              'required': [ 'content' ],
-              'patternProperties': {
-                '^x-': {}
-              } }");
+              'additionalProperties': false
+            }");
             var json =
                 JObject.Parse(@" {
                       'content': {
@@ -91,7 +65,7 @@ namespace GeneratedClientTests
             {
                 _output.WriteLine(evt.Message);
             }
-
+            //Assert.Empty(evts);
         }
 
         [Fact]
@@ -105,9 +79,9 @@ namespace GeneratedClientTests
             json.Validate(schema, (sender, args) => evts.Add(args));
             foreach (SchemaValidationEventArgs evt in evts)
             {
-                _output.WriteLine(evt.ToString());
+                _output.WriteLine(evt.Message);
             }
-            Assert.Empty(evts);
+            Assert.Equal(0, evts.Count);
         }
 
         [Fact]
@@ -170,7 +144,7 @@ namespace GeneratedClientTests
         public void minimal_specification_is_validated()
         {
             var schema = LoadSchema();
-            JObject json = JObject.Parse(@"{'openapi':'3.0.1', 'info': { 'title': '', 'version': '' }, 'paths': {} }");
+            JObject json = JObject.Parse(@"{'openapi':'3.0.1', 'info': { 'title': '', 'version': '1.2.3' }, 'paths': {} }");
             var evts = new List<SchemaValidationEventArgs>();
             json.Validate(schema, (sender, args) => evts.Add(args));
             foreach (SchemaValidationEventArgs evt in evts)
@@ -184,7 +158,7 @@ namespace GeneratedClientTests
         public void request_body_specification_is_validated()
         {
             var schema = LoadSchema();
-            JObject json = JObject.Parse(@"{'openapi':'3.0.1', 'info': { 'title': '', 'version': '' }, 'paths': { 
+            JObject json = JObject.Parse(@"{'openapi':'3.0.1', 'info': { 'title': '', 'version': '1.2.3' }, 'paths': { 
         ""/v1/{payment-service}/{payment-product}/{paymentId}/authorisations"": {
       ""post"": {
         ""operationId"": ""startPaymentAuthorisation"",
@@ -198,15 +172,9 @@ namespace GeneratedClientTests
             ""application/json"": {
               ""schema"": {
                 ""oneOf"": [
-                  {},
+                    {""x-toto"": ""foo""},
                   {
                     ""$ref"": ""#/components/schemas/updatePsuAuthentication""
-                  },
-                  {
-                    ""$ref"": ""#/components/schemas/selectPsuAuthenticationMethod""
-                  },
-                  {
-                    ""$ref"": ""#/components/schemas/transactionAuthorisation""
                   }
                 ]
               }

@@ -42,6 +42,6 @@ let parse (content:string) =
             ExternalDocs=None }
 
     with
-        | :? ArgumentNullException as ex -> Error "provided specification content is empty"
+        | :? ArgumentNullException -> Error "provided specification content is empty"
         | :? JsonReaderException as ex -> Error (sprintf "provided specification is not valid json: %s" ex.Message)
         | ParsingErrorException(msg) -> Error (sprintf "parsing failed: %s" msg)
