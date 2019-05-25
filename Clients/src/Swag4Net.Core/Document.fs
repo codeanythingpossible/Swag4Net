@@ -1,14 +1,7 @@
 namespace Swag4Net.Core
 
-open YamlDotNet
-open YamlDotNet.Serialization
 open System
-open System.Net
-open System.Net.Http
 open System.IO
-open Newtonsoft.Json
-open Newtonsoft.Json.Linq
-open YamlDotNet.Core.Tokens
 
 module Document =
   
@@ -110,7 +103,9 @@ module Document =
     function
     | Some p -> properties p
     | None -> []
-    
+
+  open Newtonsoft.Json.Linq
+
   let fromJson (json:string) =
     let rec parseProperties (o:JObject) =
       let rec toValue (token:JToken) =
@@ -130,4 +125,32 @@ module Document =
            ) |> Seq.toList |> SObject
     json |> JObject.Parse |> parseProperties
 
+  open YamlDotNet.RepresentationModel
 
+  let fromYaml (content:string) =
+    let rec analyze (node:YamlNode) = 
+      match node with
+      | :? YamlMappingNode as o -> 
+          o.Children
+          |> Seq.map (
+                fun p -> 
+                  let name = p.Key.ToString()
+                  let value = analyze p.Value
+                  name, value
+              )
+          |> Seq.toList
+          |> SObject
+      | :? YamlSequenceNode as s -> 
+          s.Children
+          |> Seq.map analyze
+          |> Seq.toList
+          |> SCollection
+      | :? YamlScalarNode as s ->
+          RawValue s.Value
+      | _ -> failwithf "node of type %A not supported" (node.GetType().Name)
+    let yaml = YamlStream()
+    use reader = new StringReader(content)
+    yaml.Load(reader)
+    let doc = yaml.Documents |> Seq.head
+    analyze doc.RootNode
+    

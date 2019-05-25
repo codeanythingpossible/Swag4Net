@@ -38,7 +38,7 @@ let tests =
                 "put": { }
                 }
               }
-           }""" |> Document.fromJson |> JsonParser.parseRoutes http
+           }""" |> Document.fromJson |> SpecParser.parseRoutes http
         Expect.equal routes.Length 3 "routes count should match"
       }
       
@@ -96,7 +96,7 @@ let tests =
                 }
               }
             }
-           }""" |> Document.fromJson |> JsonParser.parseRoutes http |> Seq.head
+           }""" |> Document.fromJson |> SpecParser.parseRoutes http |> Seq.head
         
         Expect.equal route.Path "/pet" "path should be equal"
         Expect.equal route.Summary "Add a new pet to the store" "summary should be equal"
@@ -143,7 +143,7 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int32"
-            }""" |> parseProps |> JsonParser.parseParameter spec http
+            }""" |> parseProps |> SpecParser.parseParameter spec http
             
           Expect.equal parameter
               (Some { Location=InPath
@@ -165,7 +165,7 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int64"
-            }""" |> parseProps |> JsonParser.parseParameter spec http
+            }""" |> parseProps |> SpecParser.parseParameter spec http
             
           Expect.equal parameter
               (Some { Location=InPath
@@ -181,70 +181,70 @@ let tests =
         test "Parsing int64 data type" {
           let actual =
             """{ "type": "integer", "format": "int64" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType DataType.Integer64)) "data type should be equal"
         }
         
         test "Parsing int32 data type" {
           let actual =
             """{ "type": "integer", "format": "int32" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType DataType.Integer)) "data type should be equal"
         }
         
         test "Parsing boolean data type" {
           let actual =
             """{ "type": "boolean" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType DataType.Boolean)) "data type should be equal"
         }    
         
         test "Parsing string data type" {
           let actual =
             """{ "type": "string" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok (PrimaryType (DataType.String None))) "data type should be equal"
         }
         
         test "Parsing string data type with invalid format should fallback to simple string" {
           let actual =
             """{ "type": "string", "format": "lalala" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType (DataType.String None))) "data type should be equal"
         }
               
         test "Parsing string data type with date format" {
           let actual =
             """{ "type": "string", "format": "date" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Date)))) "data type should be equal"
         }
   
         test "Parsing string data type with datetime format" {
           let actual =
             """{ "type": "string", "format": "date-time" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.DateTime)))) "data type should be equal"
         }
   
         test "Parsing string data type with password format" {
           let actual =
             """{ "type": "string", "format": "password" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Password)))) "data type should be equal"
         }
         
         test "Parsing string data type with binary format" {
           let actual =
             """{ "type": "string", "format": "binary" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Binary)))) "data type should be equal"
         }
         
         test "Parsing string data type with byte format" {
           let actual =
             """{ "type": "string", "format": "byte" }"""
-            |> Document.fromJson |> JsonParser.parseDataType spec http
+            |> Document.fromJson |> SpecParser.parseDataType spec http
           Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Base64Encoded)))) "data type should be equal"
         }
         
@@ -265,7 +265,7 @@ let tests =
             "404": {
               "description": "Pet not found"
             }
-          }""" |> Document.fromJson |> JsonParser.parseResponses spec http
+          }""" |> Document.fromJson |> SpecParser.parseResponses spec http
         Expect.sequenceEqual responses
             [
               {
@@ -348,7 +348,7 @@ let tests =
                 }
               }
             } }"""
-          |> Document.fromJson |> JsonParser.parseSchemas spec http |> Seq.head
+          |> Document.fromJson |> SpecParser.parseSchemas spec http |> Seq.head
         Expect.equal actual
             (Ok { Name="ApiResponse"
                   Properties=
@@ -414,7 +414,7 @@ let tests =
                   }
                 }
               }"""
-          |> Document.fromJson |> JsonParser.parseSchemas spec http |> Seq.head
+          |> Document.fromJson |> SpecParser.parseSchemas spec http |> Seq.head
 
         Expect.equal actual
           (Ok
@@ -475,8 +475,8 @@ let tests =
         let json = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText
         let yaml = AppDomain.CurrentDomain.BaseDirectory /> "petstore.yaml" |> File.ReadAllText
         
-        let yamlSpec = YamlParser.parseSwagger http yaml
-        let jsonSpec = JsonParser.parseSwagger http json
+        let yamlSpec = SpecParser.parseSwagger http yaml
+        let jsonSpec = SpecParser.parseSwagger http json
 
         Expect.equal yamlSpec jsonSpec "yaml and json should give same spec"
       }

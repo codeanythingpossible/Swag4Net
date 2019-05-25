@@ -52,13 +52,8 @@ let main argv =
     let outputFolder = results.GetResult <@ OutputFolder @>
     
     let http = new HttpClient()
-    
-    let parseSpec =
-      if Path.GetExtension specFile = "yaml"
-      then YamlParser.parseSwagger
-      else JsonParser.parseSwagger
-    
-    let swagger = specFile |> getRawSpec |> parseSpec http
+        
+    let swagger = specFile |> getRawSpec |> SpecParser.parseSwagger http
   
     let settings =
       { Namespace=ns }

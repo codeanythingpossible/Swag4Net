@@ -37,7 +37,7 @@ module DocumentModel =
           RelativePath(ref, Some (Anchor a)) |> Ok
 
 [<RequireQualifiedAccess>]
-module JsonParser =
+module SpecParser =
 
   open DocumentModel
 
@@ -361,8 +361,14 @@ module JsonParser =
       Contact = Some (Email contact)
       License = license }
 
+  let isJson (content:string) =
+    if content |> String.IsNullOrWhiteSpace |> not
+    then content.TrimStart().StartsWith "{"
+    else false
+
   let parseSwagger http (content:string) =
-    let spec = content |> fromJson
+    let loadDocument = if content |> isJson then fromJson else fromYaml
+    let spec =  content |> loadDocument
     let infos = parseInfos spec
     let definitions =
       match spec |> selectToken "definitions" with
