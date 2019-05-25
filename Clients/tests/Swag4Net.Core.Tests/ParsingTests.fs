@@ -19,6 +19,11 @@ let (/>) a b = Path.Combine(a, b)
 let http = new HttpClient()
 let spec = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText |> Document.fromJson
 
+let parseProps (json:string) = 
+  match Document.fromJson json with
+  | Document.SObject props -> props
+  | _ -> failtest "json has not expected structure"
+
 let tests =
   testList "spec parsing tests" [
     testList "route parsing tests" [
@@ -129,6 +134,7 @@ let tests =
       testList "parameters parsing tests" [
         
         test "Parsing int32 path param" {
+
           let parameter = 
             """{
               "name": "petId",
@@ -137,16 +143,16 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int32"
-            }""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
+            }""" |> parseProps |> JsonParser.parseParameter spec http
             
           Expect.equal parameter
-              { Location=InPath
-                Name="petId"
-                Description="ID of pet to return"
-                Deprecated=false
-                AllowEmptyValue=false
-                ParamType=PrimaryType DataType.Integer
-                Required=true }
+              (Some { Location=InPath
+                      Name="petId"
+                      Description="ID of pet to return"
+                      Deprecated=false
+                      AllowEmptyValue=false
+                      ParamType=PrimaryType DataType.Integer
+                      Required=true })
             "parameters should be equal"
         }
         
@@ -159,16 +165,16 @@ let tests =
               "required": true,
               "type": "integer",
               "format": "int64"
-            }""" |> Document.fromJson |> JsonParser.parseParameters spec http |> List.head
+            }""" |> parseProps |> JsonParser.parseParameter spec http
             
           Expect.equal parameter
-              { Location=InPath
-                Name="petId"
-                Description="ID of pet to return"
-                Deprecated=false
-                AllowEmptyValue=false
-                ParamType=PrimaryType DataType.Integer64
-                Required=true }
+              (Some { Location=InPath
+                      Name="petId"
+                      Description="ID of pet to return"
+                      Deprecated=false
+                      AllowEmptyValue=false
+                      ParamType=PrimaryType DataType.Integer64
+                      Required=true })
             "parameters should be equal"
         }
         

@@ -4,7 +4,6 @@ namespace Swag4Net.Core
 //https://swagger.io/docs/specification/data-models/data-types/
 
 open Models
-//open Newtonsoft.Json.Linq
 open System
 open System.Net
 open System.Net.Http
@@ -42,14 +41,6 @@ module JsonParser =
 
   open DocumentModel
 
-//  let readOrDefault<'t> defaultValue name (token:Value) =
-//    match token |> selectToken name with
-//    | Some (RawValue v) ->
-//        match v with
-//        | :? 't as v' -> v'
-//        | _ -> defaultValue
-//    | _ -> defaultValue
-
   let readString name (token:Value) =
     match token |> selectToken name with
     | Some (RawValue v) -> string v
@@ -66,7 +57,7 @@ module JsonParser =
   let resolveRefName (path:string) =
     path.Split '/' |> Seq.last
 
-  let readRefItem (http:HttpClient) (doc:Value) rp = //: Result<(Value*string), string> Async =
+  let readRefItem (http:HttpClient) (doc:Value) rp =
     match rp with
     | Ok p ->
        match p with
@@ -110,7 +101,7 @@ module JsonParser =
     function
     | RawValue o ->
         match o with
-        | :? 't as rv -> Some ()
+        | :? 't as rv when rv = v -> Some ()
         | _ -> None
     | _ -> None
     
@@ -139,7 +130,12 @@ module JsonParser =
                   match value |> selectToken "enum" with
                   | Some (SCollection a) ->
                       a
-                      |> Seq.map (fun c -> c.ToString())
+                      |> Seq.map (
+                            function
+                            | RawValue v when v |> isNull -> "null"
+                            | RawValue v -> v.ToString()
+                            | v -> v.ToString()
+                          )
                       |> Seq.toList
                       |> Some
                   | _ -> None
@@ -149,12 +145,14 @@ module JsonParser =
                       { Name=name
                         Type=t
                         Enums=enumValues }
-                | _ -> None
+                | Error e -> 
+                    printfn "error: %A" e
+                    None
               )
           |> Seq.toList
         Ok { Name=name
              Properties=properties }
-    | _ -> Error "Cannot parse schema"
+    | _ -> Error (sprintf "invalid properties for schema %s" name)
 
   let rec parseDataType (spec:Value) (http:HttpClient) (o:Value) =
     
@@ -194,18 +192,12 @@ module JsonParser =
           |> Async.RunSynchronously
         match r with
         | Ok (token, name) -> 
-            match token |> selectToken "properties" with
-            | Some v ->
-                  parseDataType spec http v
-                  |> Result.bind (
-                       fun dt ->
-                         let provider = parseDataType spec http 
-                         parseSchema provider v name |> Result.map ComplexType
-                     )
-            | None -> parseDataType spec http token
-
+            let provider = parseDataType spec http
+            parseSchema provider token name |> Result.map ComplexType
         | Error e -> Error e
-    | _ -> Error "Could not resolve data type"
+    | a -> 
+        printfn "a: %A" a
+        Error "Could not resolve data type"
 
   let parseSchemas (spec:Value) http (SObject o) =
     o
@@ -308,9 +300,7 @@ module JsonParser =
             | SObject props -> parseParameter spec http props
             | _ -> None
           )
-    | o -> 
-      printfn "o: %A" o
-      []
+    | _ -> []
 
   let readStringList =
     function

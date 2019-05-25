@@ -23,61 +23,66 @@ open Models
 
 let (/>) a b = Path.Combine(a, b)
 
-// let specv2File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "petstore.yaml"
+//let specv2File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "petstore.yaml"
 // let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.yaml"
+
+let spec = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "petstore.json" |> File.ReadAllText |> Document.fromJson
 
 let http = new HttpClient()
 
-let route = 
-           """{
-           "paths": {
-            "/pet": {
-               "post": {
-                    "tags": [
-                      "pet"
-                    ],
-                    "summary": "Add a new pet to the store",
-                    "description": "this is cool",
-                    "operationId": "addPet",
-                    "consumes": [
-                      "application/json",
-                      "application/xml"
-                    ],
-                    "produces": [
-                      "application/xml",
-                      "application/json"
-                    ],
-                    "parameters": [
-                      {
-                        "in": "query",
-                        "name": "body",
-                        "description": "Pet object that needs to be added to the store",
-                        "required": true,
-                        "type": "string"
-                      }
-                    ],
-                    "responses": {
-                      "405": {
-                        "description": "Invalid input"
-                      }
-                    }
-                  }
+let schemas = 
+           """{ "Pet": {
+           "type": "object",
+           "required": [
+             "name",
+             "photoUrls"
+           ],
+           "properties": {
+             "id": {
+               "type": "integer",
+               "format": "int64"
+             },
+             "category": {
+               "$ref": "#/definitions/Category"
+             },
+             "name": {
+               "type": "string",
+               "example": "doggie"
+             },
+             "photoUrls": {
+               "type": "array",
+               "xml": {
+                 "name": "photoUrl",
+                 "wrapped": true
+               },
+               "items": {
+                 "type": "string"
+               }
+             },
+             "tags": {
+               "type": "array",
+               "xml": {
+                 "name": "tag",
+                 "wrapped": true
+               },
+               "items": {
+                 "$ref": "#/definitions/Tag"
+               }
+             },
+             "status": {
+               "type": "string",
+               "description": "pet status in the store",
+               "enum": [
+                 "available",
+                 "pending",
+                 "sold"
+               ]
+             }
+           },
+           "xml": {
+             "name": "Pet"
+           }
                 }
-              },
-            "definitions": {
-              "Pet": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "name": {
-                    "type": "string",
-                    "example": "doggie"
-                  }
-                }
-              }
-            }
-           }""" |> Document.fromJson |> JsonParser.parseRoutes http |> Seq.head
+        }""" |> Document.fromJson |> JsonParser.parseSchemas spec http
+
 
