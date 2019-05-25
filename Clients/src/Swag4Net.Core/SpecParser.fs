@@ -5,8 +5,6 @@ namespace Swag4Net.Core
 
 open Models
 open System
-open System.Net
-open System.Net.Http
 open System.IO
 open Document
 
@@ -18,6 +16,19 @@ module DocumentModel =
       | ExternalUrl of Uri * Anchor option
       | RelativePath of string * Anchor option
       | InnerReference of Anchor
+
+[<RequireQualifiedAccess>]
+module SpecParser =
+
+  open DocumentModel
+
+  type ResourceProvider = ResourceProviderContext -> Result<ReferenceContent, string> Async
+  and ResourceProviderContext = 
+    { Document:Value
+      Reference:ReferencePath }
+  and ReferenceContent =
+    { Name:string
+      Content:Value }
 
   let parseReference (ref:string) : Result<ReferencePath, string> =
     match ref with
@@ -36,11 +47,6 @@ module DocumentModel =
           let a = ref.Substring i
           RelativePath(ref, Some (Anchor a)) |> Ok
 
-[<RequireQualifiedAccess>]
-module SpecParser =
-
-  open DocumentModel
-
   let readString name (token:Value) =
     match token |> selectToken name with
     | Some (RawValue v) -> string v
@@ -52,50 +58,22 @@ module SpecParser =
         match v with
         | :? Boolean as b -> b
         | :? String as s -> Boolean.TryParse s |> snd
+        | _ -> false // TODO: check format
     | _ -> false // TODO: check format
 
   let resolveRefName (path:string) =
     path.Split '/' |> Seq.last
 
-  let readRefItem (http:HttpClient) (doc:Value) rp =
+  let readRefItem (provider:ResourceProvider) (doc:Value) rp =
     match rp with
     | Ok p ->
-       match p with
-       | ExternalUrl(uri, a) ->
-            async {
-                let! content = uri |> http.GetStringAsync |> Async.AwaitTask
-                let v = content |> fromJson
-                let name =
-                  match a with
-                  | Some (Anchor l) -> resolveRefName l
-                  | _ -> uri.Segments |> Seq.last
-                return Ok (v, name)
-            }
-       | RelativePath(p, a) ->
-            async {
-                let content = File.ReadAllText p
-                let v = content |> fromJson
-                let name =
-                  match a with
-                  | Some (Anchor l) -> resolveRefName l
-                  | _ -> resolveRefName p
-                return Ok (v, name)
-            }
-       | InnerReference (Anchor a) -> 
-            async {
-                let p = (a.Trim '/').Replace('/', '.')
-                let token = doc |> selectToken p
-                return
-                  match token with
-                  | None -> Error "path not found"
-                  | Some v -> Ok (v, resolveRefName a)
-            }
+        { Document=doc; Reference=p } |> provider
     | Error e -> async { return Error e }
 
-  let getRefItem (http:HttpClient) doc (path:string) =
+  let getRefItem provider doc (path:string) =
     path
     |> parseReference
-    |> readRefItem http doc
+    |> readRefItem provider doc
     
   let (|IsRawValue|_|) (v:'t) =
     function
@@ -154,7 +132,7 @@ module SpecParser =
              Properties=properties }
     | _ -> Error (sprintf "invalid properties for schema %s" name)
 
-  let rec parseDataType (spec:Value) (http:HttpClient) (o:Value) =
+  let rec parseDataType (spec:Value) provider (o:Value) =
     
     let (|Ref|_|) (token:Value) =
       match token |> readString "$ref" with
@@ -184,16 +162,16 @@ module SpecParser =
     | IsType "array" -> 
         match o |> selectToken "items" with
         | None -> Error "Could not resolve array items"
-        | Some v -> v |> parseDataType spec http |> Result.map (DataType.Array >> PrimaryType)
+        | Some v -> v |> parseDataType spec provider |> Result.map (DataType.Array >> PrimaryType)
     | Ref ref -> 
         let r = 
           ref 
-          |> readRefItem http spec 
+          |> readRefItem provider spec 
           |> Async.RunSynchronously
         match r with
-        | Ok (token, name) -> 
-            let provider = parseDataType spec http
-            parseSchema provider token name |> Result.map ComplexType
+        | Ok c ->
+            let provider = parseDataType spec provider
+            parseSchema provider c.Content c.Name |> Result.map ComplexType
         | Error e -> Error e
     | a -> 
         printfn "a: %A" a
@@ -230,7 +208,7 @@ module SpecParser =
                     | _ -> None
                 | Some s -> s |> parseDataType spec http |> Some
               let rsType' = match rsType with | Some (Ok v) -> Some v | _ -> None 
-              match Enum.TryParse<HttpStatusCode> name with
+              match Enum.TryParse<System.Net.HttpStatusCode> name with
               | false, _ when name |> String.IsNullOrEmpty |> not && name.Equals("default", StringComparison.InvariantCultureIgnoreCase) -> 
                   Some 
                     { Code = AnyStatusCode
@@ -314,7 +292,7 @@ module SpecParser =
              )
     | _ -> []
   
-  let parseRoutes http (spec:Value) =
+  let parseRoutes provider (spec:Value) =
     spec
     |> selectToken "paths"
     |> someProperties
@@ -336,8 +314,8 @@ module SpecParser =
                       OperationId = route |> readString "operationId"
                       Consumes = route |> selectToken "consumes" |> readStringList
                       Produces = route |> selectToken "produces" |> readStringList
-                      Responses = match route |> selectToken "responses" with | Some t -> parseResponses spec http t | None -> []
-                      Parameters = match route |> selectToken "parameters" with | Some t -> parseParameters spec http t | None -> []
+                      Responses = match route |> selectToken "responses" with | Some t -> parseResponses spec provider t | None -> []
+                      Parameters = match route |> selectToken "parameters" with | Some t -> parseParameters spec provider t | None -> []
                     }
                 else None
               )
@@ -366,18 +344,19 @@ module SpecParser =
     then content.TrimStart().StartsWith "{"
     else false
 
-  let parseSwagger http (content:string) =
-    let loadDocument = if content |> isJson then fromJson else fromYaml
+  let loadDocument content = if content |> isJson then fromJson content else fromYaml content
+
+  let parseSwagger provider (content:string) =
     let spec =  content |> loadDocument
     let infos = parseInfos spec
     let definitions =
       match spec |> selectToken "definitions" with
       | Some (SObject o) ->
-          parseSchemas spec http (SObject o)
+          parseSchemas spec provider (SObject o)
           |> List.choose (function | Ok s -> Some s | _ -> None)
       | _ -> []
     
-    let routes = parseRoutes http spec
+    let routes = parseRoutes provider spec
     { Infos = infos
       Host = spec |> readString "host"
       BasePath = spec |> readString "basePath"
@@ -386,10 +365,10 @@ module SpecParser =
       Routes = routes
       Definitions = definitions }
 
-  let parseOpenApiV3 http (content:string) =
+  let parseOpenApiV3 provider (content:string) =
     let spec = content |> fromJson
     let infos = parseInfos spec
-    let routes = parseRoutes http spec
+    let routes = parseRoutes provider spec
 
     { Infos = infos
       Host = spec |> readString "host"
