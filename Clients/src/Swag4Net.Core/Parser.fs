@@ -125,6 +125,9 @@ module Parser =
                Properties=properties }
       | _ -> Error (sprintf "invalid properties for schema %s" name)
 
+    let resolveRefName (path:string) =
+      path.Split '/' |> Seq.last
+
     let rec parseDataType (spec:Value) provider (o:Value) =
   
       let (|Ref|_|) (token:Value) =
@@ -201,8 +204,6 @@ module Parser =
       if content |> String.IsNullOrWhiteSpace |> not
       then content.TrimStart().StartsWith "{"
       else false
-
-    let private loadDocument content = if content |> isJson then fromJson content else fromYaml content
 
     let parseSchemas (spec:Value) http (SObject o) =
       o
@@ -336,6 +337,8 @@ module Parser =
                 )
          )
       |> Seq.toList
+
+    let loadDocument content = if content |> isJson then fromJson content else fromYaml content
 
     let parseSwagger provider (content:string) =
       let spec =  content |> loadDocument

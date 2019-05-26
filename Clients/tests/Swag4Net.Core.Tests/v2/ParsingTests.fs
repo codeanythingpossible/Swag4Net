@@ -15,9 +15,6 @@ module ParsingTests =
     let http = new HttpClient()
     let spec = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText |> Document.fromJson
 
-    let private resolveRefName (path:string) =
-      path.Split '/' |> Seq.last
-
     let parseProps (json:string) = 
       match Document.fromJson json with
       | Document.SObject props -> props
@@ -34,7 +31,7 @@ module ParsingTests =
                   match token with
                   | None -> Error "path not found"
                   | Some v -> 
-                      let name = resolveRefName a
+                      let name = Parser.resolveRefName a
                       Ok { Name=name; Content=v }
             }
         | _ -> async { return Error "not implemented" }
