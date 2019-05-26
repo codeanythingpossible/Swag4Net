@@ -3,9 +3,8 @@ namespace Swag4Net.Generators.RoslynGenerator
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
-open System.Net
-open Swag4Net.Core.v2
-open Models
+open Swag4Net.Core
+open SpecificationModel
 
 module CodeGeneration =
 

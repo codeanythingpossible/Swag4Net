@@ -2,7 +2,7 @@
 
 open Newtonsoft.Json.Linq
 open System
-open Swag4Net.Core.SpecificationModel
+open Swag4Net.Core.v3.SpecificationDocument
 open Newtonsoft.Json
 
 exception ParsingErrorException of string
