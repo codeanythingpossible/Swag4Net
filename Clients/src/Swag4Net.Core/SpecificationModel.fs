@@ -1,4 +1,6 @@
-module Swag4Net.Core.SpecificationModel
+namespace Swag4Net.Core
+
+module SpecificationModel =
 
   type TypeName = string
   type HttpStatusCode = string

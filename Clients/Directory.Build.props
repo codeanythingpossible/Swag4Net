@@ -11,6 +11,6 @@
     <AssemblyVersion>$(VersionMajor).0.0.0</AssemblyVersion>
     <FileVersion>$(VersionMajor).0.0.0</FileVersion>
     <SolutionDir Condition=" '$(SolutionDir)' == '' ">$(MSBuildThisFileDirectory)</SolutionDir>
-    <BaseIntermediateOutputPath>$(SolutionDir)!obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)build.obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
   </PropertyGroup>
 </Project>

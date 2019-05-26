@@ -12,4 +12,5 @@ module Program =
     let mutable result = runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.v2.ParsingTests.tests
     let result = result + runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.v3.ParsingTests.tests
     let result = result + runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.ParserTests.tests
+    let result = result + runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.ValidatorTests.tests
     result

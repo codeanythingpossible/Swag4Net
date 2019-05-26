@@ -3,6 +3,8 @@ open System.IO
 
 open System.Net.Http
 open Argu
+open Swag4Net.Core
+open Swag4Net.Core.v2.DocumentModel
 open Swag4Net.Core.v2
 open Swag4Net.Generators.RoslynGenerator
 open CsharpGenerator
@@ -51,12 +53,43 @@ let main argv =
     
     let http = new HttpClient()
     
-    let parseSpec =
-      if Path.GetExtension specFile = "yaml"
-      then YamlParser.parseSwagger
-      else JsonParser.parseSwagger
-    
-    let swagger = specFile |> getRawSpec |> parseSpec http
+    let loadReference : SpecParser.ResourceProvider =
+      fun ctx ->
+        match ctx.Reference with
+        | ExternalUrl(uri, a) ->
+          async {
+              let! content = uri |> http.GetStringAsync |> Async.AwaitTask
+              let v = content |> SpecParser.loadDocument
+              let name =
+                match a with
+                | Some (Anchor l) -> SpecParser.resolveRefName l
+                | _ -> uri.Segments |> Seq.last
+              return Ok { Name=name; Content=v }
+          }
+         | RelativePath(p, a) ->
+          async {
+              let content = File.ReadAllText p
+              let v = content |> SpecParser.loadDocument
+              let name =
+                match a with
+                | Some (Anchor l) -> SpecParser.resolveRefName l
+                | _ -> SpecParser.resolveRefName p
+              return Ok { Name=name; Content=v }
+          }
+         | InnerReference (Anchor a) -> 
+          async {
+              let p = (a.Trim '/').Replace('/', '.')
+              let token = ctx.Document |> Document.selectToken p
+              return
+                match token with
+                | None -> Error "path not found"
+                | Some v -> 
+                    let name = SpecParser.resolveRefName a
+                    Ok { Name=name; Content=v }
+          }
+
+
+    let swagger = specFile |> getRawSpec |> SpecParser.parseSwagger loadReference
   
     let settings =
       { Namespace=ns }

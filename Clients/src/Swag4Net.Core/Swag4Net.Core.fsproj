@@ -5,17 +5,18 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="SpecificationModel.fs" />
+    <Compile Include="Document.fs" />
     <EmbeddedResource Include="v3\openapi-jsonschema.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <Compile Include="v3\JsonParser.fs" />
     <Compile Include="v2\Models.fs" />
-    <Compile Include="v2\JsonParser.fs" />
-    <Compile Include="v2\YamlParser.fs" />
+    <Compile Include="v2\SpecParser.fs" />
     <Compile Include="Validator.fs" />
-    <Compile Include="Parser.fs" />
+    <Compile Include="Parser.fs" />    
   </ItemGroup>
   <ItemGroup>
+    <None Include="abstract_parser.fsx" />
     <None Include="script.fsx" />
   </ItemGroup>
   <ItemGroup>

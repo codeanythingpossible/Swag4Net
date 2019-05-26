@@ -15,8 +15,8 @@ open Fake.Core
 open Fake.IO.FileSystemOperators
 
 // Properties
-let outputDir = "./!artifacts"
-let tempDir = "./!obj"
+let outputDir = "./build.artifacts"
+let tempDir = "./build.obj"
 
 let install = lazy DotNet.install DotNet.Versions.FromGlobalJson
 
