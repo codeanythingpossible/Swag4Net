@@ -330,3 +330,5 @@ ASALocalRun/
 .mfractor/
 \!obj/
 \!artifact/
+/Clients/tmp/
+/Clients/.vscode

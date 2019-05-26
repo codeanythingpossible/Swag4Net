@@ -53,8 +53,8 @@ module Swag4Net.Core.SpecificationModel
   and Server = 
     {
       Url:string
-      Description:string
-      Variables:Map<string, ServerVariable> }
+      Description:string option
+      Variables:Map<string, ServerVariable> option }
   and ServerVariable = 
     {
       Enum: string list

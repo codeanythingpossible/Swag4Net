@@ -1,5 +1,5 @@
 {
-  "$id": "https://swag4net.codeanythingpossible.io/v0.1.0",
+  "$id": "https://swag4net.codingimpossible.com/v3.0.1",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
     "api-schema": {
