@@ -41,6 +41,11 @@ Target.create "BuildGeneratorApp" (fun _ ->
   DotNet.exec options "run" "" |> ignore
 )
 
+Target.create "PackCore" (fun _ ->
+  let options = withWorkDir "./src/Swag4Net.Core"
+  DotNet.exec options "pack" "" |> ignore
+)
+
 Target.create "PackGeneratorApp" (fun _ ->
   let options = withWorkDir "./src/Swag4Net.ClientGenerator"
   DotNet.exec options "pack" "" |> ignore
@@ -65,6 +70,7 @@ open Fake.Core.TargetOperators
   ==> "BuildGeneratorApp"
   ==> "Test"
   ==> "IntegrationTests"
+  ==> "PackCore"
   ==> "PackGeneratorApp"
   ==> "Default"
 
