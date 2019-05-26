@@ -4,7 +4,7 @@ module Program =
   
   (**
    * run the test with:
-   * dotnet watch -p NewSwag.Core.Tests run -f netcoreapp2.1
+   * dotnet watch -p Swag4Net.Core.Tests run -f netcoreapp2.1
    *)
   
   let [<EntryPoint>] main args =

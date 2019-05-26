@@ -4,11 +4,12 @@
     <RootNamespace>NewSwag.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Document.fs" />
     <Compile Include="Models.fs" />
-    <Compile Include="JsonParser.fs" />
-    <Compile Include="YamlParser.fs" />
+    <Compile Include="SpecParser.fs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="abstract_parser.fsx" />
     <None Include="script.fsx" />
   </ItemGroup>
   <ItemGroup>
