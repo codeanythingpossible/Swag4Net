@@ -15,13 +15,10 @@ open Swag4Net.Core
 
 //open Newtonsoft.Json
 
-//E:\Users\zeric_000\Documents\dev\src\Swag4Net\Clients\tests\IntegrationTests\GeneratedClientTests\playground\schemas\psd2-api_1.3.3_20190412.json
-
 let (/>) a b = Path.Combine(a, b)
 
 //let specv2File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "petstore.yaml"
-//let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.yaml"
-let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "IntegrationTests" /> "GeneratedClientTests" /> "playground" /> "schemas" /> "psd2-api_1.3.3_20190412.json"
+let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.yaml"
 
 //let readYamlAsJson =
 //  File.ReadAllText
