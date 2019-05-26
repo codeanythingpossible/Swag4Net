@@ -118,9 +118,7 @@ module Parser =
                         { Name=name
                           Type=t
                           Enums=enumValues }
-                  | Error e -> 
-                      printfn "error: %A" e
-                      None
+                  | Error e -> None
                 )
             |> Seq.toList
           Ok { Name=name
@@ -168,9 +166,7 @@ module Parser =
               let provider = parseDataType spec provider
               parseSchema provider c.Content c.Name |> Result.map ComplexType
           | Error e -> Error e
-      | a -> 
-          printfn "a: %A" a
-          Error "Could not resolve data type"
+      | a -> Error "Could not resolve data type"
 
     let private readStringList =
       function
