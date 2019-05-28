@@ -126,6 +126,7 @@
           "type": "array",
           "items": {}
         },
+        "type": { "type": "string" },
         "format": { "type": "string" },
         "discriminator": {
           "type": "object",

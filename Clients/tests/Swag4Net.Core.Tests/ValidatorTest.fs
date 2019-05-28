@@ -36,4 +36,12 @@ module ValidatorTests =
                     errors |> List.map (fun msg -> logger.info(eventX msg)) |> ignore
               Expect.isOk result "missing info block should raise an error"
             } 
+            test "validating a schema" {
+              let result = "{'openapi':'3.0.1', 'info': { 'title': '', 'version': '1.2.3' }, 'paths': { '/foo': { 'get': { 'responses': { 'default': { 'description':'', 'content': { 'foo': { 'schema': { 'type': 'string' } } } } } } } } }" |> Swag4Net.Core.Validator.validateV3
+              match result with
+              | Ok () -> ()
+              | Result.Error errors -> 
+                    errors |> List.map (fun msg -> logger.info(eventX msg)) |> ignore
+              Expect.isOk result "missing info block should raise an error"
+            }         
         ]
