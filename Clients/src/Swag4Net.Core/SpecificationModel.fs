@@ -1,9 +1,8 @@
 namespace Swag4Net.Core
 
-open System
 open System.Net
 
-module Models =
+module SpecificationModel =
   type TypeName = string
   type Documentation =
     { Infos:Infos

@@ -3,12 +3,8 @@ namespace Swag4Net.Generators.RoslynGenerator
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
-open System.Net
-
 open Swag4Net.Core
-open Models
-open Microsoft.CodeAnalysis.CSharp.Syntax
-open Microsoft.CodeAnalysis.CSharp
+open SpecificationModel
 
 module CodeGeneration =
 
@@ -322,7 +318,6 @@ module CsharpGenerator =
             | InCookie -> Some (callCookieParam p :> StatementSyntax)
             | InHeader -> Some (callHeaderParam p :> StatementSyntax)
             | InFormData -> Some (callFormDataParam p :> StatementSyntax)
-            | _ -> None
          )
     let block = 
       SyntaxFactory.Block(
