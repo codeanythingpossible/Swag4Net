@@ -1,0 +1,1 @@
+dotnet watch -p Swag4Net.Core.Tests.fsproj run -f netcoreapp2.1

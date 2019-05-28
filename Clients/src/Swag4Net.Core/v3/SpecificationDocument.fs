@@ -1,16 +1,21 @@
 namespace Swag4Net.Core.v3
 
+open System
+
 module SpecificationDocument =
 
   type TypeName = string
+  type Anchor = Anchor of string
   type HttpStatusCode = string
-  type TypeOrReference<'a> =
-     | T of 'a
-     | R of Reference
-  and Reference = string
+  type TypeOrReference<'TTarget> =
+     | Target of 'TTarget
+     | Reference of Reference
+  and Reference =
+      | ExternalUrl of Uri * Anchor option
+      | RelativePath of string * Anchor option
+      | InnerReference of Anchor
   type RegularExpression = string
   type Any = string
-  type Url = string
 
   type Documentation =
     { Standard: Standard
@@ -49,12 +54,12 @@ module SpecificationDocument =
       Callbacks: Map<string, TypeOrReference<Callback>> option }
   and Contact = 
     | Email of string
-    | Url of string
+    | Url of Uri
   and License = 
-    { Name:string; Url:string }
+    { Name:string; Url:Uri }
   and Server = 
     {
-      Url:string
+      Url:Uri
       Description:string option
       Variables:Map<string, ServerVariable> option }
   and ServerVariable = 
@@ -148,12 +153,12 @@ module SpecificationDocument =
       Deprecated:bool option
     }
   and AdditionalProperties =
-    | B of bool
-    | M of Map<string, Schema>
+    | Allowed of bool
+    | Properties of Map<string, Schema>
   and ItemType =
-    | T of TypeName
-    | S of Schema
-    | R of Reference
+    | Name of TypeName
+    | Schema of Schema
+    | Reference of Reference
   and Response =
     {
       Description: string
@@ -173,7 +178,7 @@ module SpecificationDocument =
       Scheme: string
       BearerFormat: string
       Flows: OAuthFlows
-      OpenIdConnectUrl: string }
+      OpenIdConnectUrl: Uri }
   and OAuthFlows =
     {
       Implicit: OAuthFlow option
@@ -182,9 +187,9 @@ module SpecificationDocument =
       AuthorizationCode: OAuthFlow option }
   and OAuthFlow =
     {
-      AuthorizationUrl: string
-      TokenUrl: string
-      RefreshUrl: string
+      AuthorizationUrl: Uri
+      TokenUrl: Uri
+      RefreshUrl: Uri
       Scopes: Map<string, string> }
   and SecurityRequirement = Map<string, string list>
   and Header = 
@@ -208,7 +213,7 @@ module SpecificationDocument =
   and ExternalDocumentation =
     {
       Description: string option
-      Url: Url }
+      Url: Uri }
   and Encoding =
     {
       ContentType: string
