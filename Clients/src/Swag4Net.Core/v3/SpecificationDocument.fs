@@ -32,13 +32,11 @@ module SpecificationDocument =
       Contact:Contact option
       License:License option }
   and Request =
-    {
-        Description: string option
-        Content: Map<string, MediaType>
-        Required: bool }
+    { Description: string option
+      Content: Map<string, MediaType>
+      Required: bool }
   and Components =
-    {
-      Schemas: Map<string, TypeOrReference<Schema>> option
+    { Schemas: Map<string, TypeOrReference<Schema>> option
       Responses: Map<string, TypeOrReference<Response>> option
       Parameters: Map<string, TypeOrReference<Parameter>> option
       Examples: Map<string, TypeOrReference<Example>> option
@@ -48,10 +46,11 @@ module SpecificationDocument =
       Links: Map<string, TypeOrReference<Link>> option
       Callbacks: Map<string, TypeOrReference<Callback>> option }
   and Contact = 
-    | Email of string
-    | Url of string
+    { Name:string option
+      Url:string option
+      Email:string option }
   and License = 
-    { Name:string; Url:string }
+    { Name:string; Url:string option }
   and Server = 
     {
       Url:string

@@ -11,10 +11,8 @@ let internal ReadEmbedded(path: string) =
     Assembly.GetExecutingAssembly().GetManifestResourceStream(path)
 #endif
 
-let validateV3' (stream:Stream) (content:string) =
-    use s = new StreamReader(stream)
-    use reader = new JsonTextReader(s)
-    let schema = JSchema.Load(reader)
+let validateV3' (jsonSchema:string) (content:string) =
+    let schema = JSchema.Parse jsonSchema
     let json = JObject.Parse content
     let errors = ref []
     json.Validate(schema, fun _ evtArg -> errors := evtArg.Message :: !errors)
@@ -24,6 +22,11 @@ let validateV3' (stream:Stream) (content:string) =
         Ok()
 
 #if !INTERACTIVE
+
 let validateV3 =
-  "Swag4Net.Core.v3.openapi-jsonschema.json" |> ReadEmbedded |> validateV3'
+  use stream = "Swag4Net.Core.v3.openapi-jsonschema.json" |> ReadEmbedded
+  use reader = new StreamReader(stream)
+  let schema = reader.ReadToEnd()
+  validateV3' schema
+
 #endif
