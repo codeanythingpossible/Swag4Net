@@ -34,6 +34,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{49A148C6-0FA
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "openapiV3", "openapiV3", "{E9087F0B-A1F4-448C-8389-7918F4D3D690}"
 	ProjectSection(SolutionItems) = preProject
+		tests\Assets\openapiV3\petstoreV3.json = tests\Assets\openapiV3\petstoreV3.json
 		tests\Assets\openapiV3\petstoreV3.yaml = tests\Assets\openapiV3\petstoreV3.yaml
 	EndProjectSection
 EndProject
