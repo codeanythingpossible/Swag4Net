@@ -12,7 +12,7 @@ let (/>) a b = Path.Combine(a, b)
 
 let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.json"
 
-let stream = __SOURCE_DIRECTORY__ /> "v3" /> "openapi-jsonschema.json" |> File.OpenRead
+let schema = __SOURCE_DIRECTORY__ /> "v3" /> "openapi-jsonschema.json" |> File.ReadAllText
 let content = specv3File |> File.ReadAllText 
 
-Validator.validateV3' stream content
+Validator.validateV3' schema content

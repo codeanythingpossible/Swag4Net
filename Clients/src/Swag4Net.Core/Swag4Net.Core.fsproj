@@ -17,6 +17,8 @@
   <ItemGroup>
     <None Include="abstract_parser.fsx" />
     <None Include="script.fsx" />
+    <None Include="ParsingV3.fsx" />
+    <None Include="computation-learning.fsx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
