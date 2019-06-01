@@ -4,9 +4,9 @@ module SpecificationDocument =
 
   type TypeName = string
   type HttpStatusCode = string
-  type TypeOrReference<'a> =
-     | T of 'a
-     | R of Reference
+  type InlinedOrReferenced<'a> =
+     | Inlined of 'a
+     | Referenced of Reference
   and Reference = string
   type RegularExpression = string
   type Any = string
@@ -36,15 +36,15 @@ module SpecificationDocument =
       Content: Map<string, MediaType>
       Required: bool }
   and Components =
-    { Schemas: Map<string, TypeOrReference<Schema>> option
-      Responses: Map<string, TypeOrReference<Response>> option
-      Parameters: Map<string, TypeOrReference<Parameter>> option
-      Examples: Map<string, TypeOrReference<Example>> option
-      RequestBodies: Map<string, TypeOrReference<Request>> option
-      Headers: Map<string, TypeOrReference<Header>> option
-      SecuritySchemes: Map<string, TypeOrReference<SecurityScheme>> option
-      Links: Map<string, TypeOrReference<Link>> option
-      Callbacks: Map<string, TypeOrReference<Callback>> option }
+    { Schemas: Map<string, InlinedOrReferenced<Schema>> option
+      Responses: Map<string, InlinedOrReferenced<Response>> option
+      Parameters: Map<string, InlinedOrReferenced<Parameter>> option
+      Examples: Map<string, InlinedOrReferenced<Example>> option
+      RequestBodies: Map<string, InlinedOrReferenced<Request>> option
+      Headers: Map<string, InlinedOrReferenced<Header>> option
+      SecuritySchemes: Map<string, InlinedOrReferenced<SecurityScheme>> option
+      Links: Map<string, InlinedOrReferenced<Link>> option
+      Callbacks: Map<string, InlinedOrReferenced<Callback>> option }
   and Contact = 
     { Name:string option
       Url:string option
@@ -58,7 +58,7 @@ module SpecificationDocument =
       Variables:Map<string, ServerVariable> option }
   and ServerVariable = 
     {
-      Enum: string list
+      Enum: string list option
       Default: string
       Description: string }
   and Path =
@@ -66,16 +66,16 @@ module SpecificationDocument =
       Reference: string
       Summary:string
       Description:string
-      Get:Operation
-      Put:Operation
-      Post:Operation
-      Delete:Operation
-      Options:Operation
-      Head:Operation
-      Patch:Operation
-      Trace:Operation
-      Servers:Server list
-      Parameters:TypeOrReference<Parameter> list
+      Get:Operation option
+      Put:Operation option
+      Post:Operation option
+      Delete:Operation option
+      Options:Operation option
+      Head:Operation option
+      Patch:Operation option
+      Trace:Operation option
+      Servers:Server list option
+      Parameters:Parameter list InlinedOrReferenced option
       }
   and Operation =
     {
@@ -84,11 +84,11 @@ module SpecificationDocument =
       Description: string option
       ExternalDocs: ExternalDocumentation option
       OperationId: string 
-      Parameters: TypeOrReference<Parameter> list option
-      RequestBody: TypeOrReference<Request> option
+      Parameters: Parameter list InlinedOrReferenced option
+      RequestBody: Request InlinedOrReferenced option
       Responses: Responses
-      Callbacks: Map<string, TypeOrReference<Callback>> option
-      Deprecated: bool option
+      Callbacks: Map<string, Callback InlinedOrReferenced> option
+      Deprecated: bool
       Security: SecurityRequirement list option
       Servers: Server list option }
   and Parameter =
@@ -96,29 +96,30 @@ module SpecificationDocument =
         Name: string
         In: string
         Description: string option
-        Required: bool option
-        Deprecated: bool option
-        AllowEmptyValue: bool option
+        Required: bool
+        Deprecated: bool
+        AllowEmptyValue: bool
         Style: string option
-        Explode: bool option
-        AllowReserved: bool option
-        Schema: TypeOrReference<Schema> option
+        Explode: bool
+        AllowReserved: bool
+        Schema: Schema InlinedOrReferenced option
         Example: Any option
-        Examples: Map<string, TypeOrReference<Example>> option
+        Examples: Map<string, Example InlinedOrReferenced> option
         Content: Map<string, MediaType> option }
   and MediaType =
     {
-      Schema: TypeOrReference<Schema>
-      Examples: Map<string, TypeOrReference<Example>>
+      Schema: Schema InlinedOrReferenced
+      Examples: Map<string, Example InlinedOrReferenced>
       Encoding: Map<string, Encoding> }
   and Schema =
     {
       Title: string option
-      AllOf: TypeOrReference<Schema> option
-      OneOf: TypeOrReference<Schema> option
-      AnyOf: TypeOrReference<Schema> option
-      Not: TypeOrReference<Schema> option
-      MultipleOf: TypeOrReference<Schema> option
+      Type: string
+      AllOf: Schema InlinedOrReferenced option
+      OneOf: Schema InlinedOrReferenced option
+      AnyOf: Schema InlinedOrReferenced option
+      Not: Schema InlinedOrReferenced option
+      MultipleOf: Schema InlinedOrReferenced option
       Items: ItemType option
       Maximum: int option
       ExclusiveMaximum: int option
@@ -144,8 +145,7 @@ module SpecificationDocument =
       Xml: Xml option
       ExternalDocs:ExternalDocumentation option
       Example: Any option
-      Deprecated:bool option
-    }
+      Deprecated:bool }
   and AdditionalProperties =
     | B of bool
     | M of Map<string, Schema>
@@ -156,13 +156,13 @@ module SpecificationDocument =
   and Response =
     {
       Description: string
-      Headers: Map<string, TypeOrReference<Header>> option
+      Headers: Map<string, InlinedOrReferenced<Header>> option
       Content: Map<string, MediaType> option
-      Links: Map<string, TypeOrReference<Link>> option }
+      Links: Map<string, InlinedOrReferenced<Link>> option }
   and Responses = 
     {
-       Responses: Map<HttpStatusCode, TypeOrReference<Response>>
-       Default: TypeOrReference<Response> option }
+       Responses: Map<HttpStatusCode, InlinedOrReferenced<Response>>
+       Default: InlinedOrReferenced<Response> option }
   and SecurityScheme =
     {
       Type: string
@@ -195,9 +195,9 @@ module SpecificationDocument =
         Style: string
         Explode: bool
         AllowReserved: bool
-        Schema: TypeOrReference<Schema>
+        Schema: InlinedOrReferenced<Schema>
         Example: Any
-        Examples: Map<string, TypeOrReference<Example>>
+        Examples: Map<string, InlinedOrReferenced<Example>>
         Content: Map<string, MediaType> }
   and Tag =
     {
@@ -211,7 +211,7 @@ module SpecificationDocument =
   and Encoding =
     {
       ContentType: string
-      Headers: Map<string, TypeOrReference<Header>>
+      Headers: Map<string, InlinedOrReferenced<Header>>
       Style: string
       Explode: bool
       AllowReserved: bool }
