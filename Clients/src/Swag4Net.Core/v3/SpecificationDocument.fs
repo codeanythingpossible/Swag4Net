@@ -84,7 +84,7 @@ module SpecificationDocument =
       Description: string option
       ExternalDocs: ExternalDocumentation option
       OperationId: string 
-      Parameters: Parameter list InlinedOrReferenced option
+      Parameters: Parameter InlinedOrReferenced list option
       RequestBody: Request InlinedOrReferenced option
       Responses: Responses
       Callbacks: Map<string, Callback InlinedOrReferenced> option

@@ -163,7 +163,7 @@ let parsing = new ParsingWorkflowBuilder()
 let readString name (token:Value) =
   match token |> selectToken name with
   | Some (RawValue v) -> Ok(string v)
-  | _ -> Error (InvalidFormat <| sprintf "Missing field '%s'" name)
+  | _ -> Error (InvalidFormat <| sprintf "Missing field '%s' in %A" name token)
 
 let readStringOption name (token:Value) =
   match token |> selectToken name with
@@ -463,27 +463,32 @@ let parseSchemaRef node : ParsingState<Schema InlinedOrReferenced option> =
     return r
   }
 
-let parseParameter node : ParsingState<Parameter> =
+let parseParameter node : ParsingState<Parameter InlinedOrReferenced> =
   parsing {
-    let! name = node |> readString "name"
-    let! ``in`` = node |> readString "in"
-    let! schema = node |> parseSchemaRef
+    match node |> selectToken "$ref" with
+    | Some (RawValue s) ->
+        return Referenced (s.ToString())
+    | _ ->
+        let! name = node |> readString "name"
+        let! ``in`` = node |> readString "in"
+        let! schema = node |> parseSchemaRef
 
-    return 
-      {
-        Name = name
-        In = ``in``
-        Description = node |> readStringOption "description"
-        Required = node |> readBoolWithDefault "required" true
-        Deprecated = node |> readBool "required"
-        AllowEmptyValue = node |> readBool "required"
-        Style = node |> readStringOption "style"
-        Explode = node |> readBool "explode"
-        AllowReserved = node |> readBool "allowReserved"
-        Schema = schema
-        Example = node |> readStringOption "example"
-        Examples = None
-        Content = None }
+        return 
+          Inlined
+            {
+              Name = name
+              In = ``in``
+              Description = node |> readStringOption "description"
+              Required = node |> readBoolWithDefault "required" true
+              Deprecated = node |> readBool "required"
+              AllowEmptyValue = node |> readBool "required"
+              Style = node |> readStringOption "style"
+              Explode = node |> readBool "explode"
+              AllowReserved = node |> readBool "allowReserved"
+              Schema = schema
+              Example = node |> readStringOption "example"
+              Examples = None
+              Content = None }
   }
 
 let parseContent node : Map<MimeType, PayloadDefinition> option ParsingState =
@@ -580,18 +585,13 @@ let operation template verb node =
         | None -> return None
       }
 
-    let! (parameters : Parameter list InlinedOrReferenced option) =
+    let! (parameters : Parameter InlinedOrReferenced list option) =
         match node |> selectToken "parameters" with
-        | Some (SObject ["$ref", RawValue link]) ->
-            if link |> isNull
-            then None
-            else Some (Referenced (string link))
-            |> ParsingState.success
         | Some (SCollection items) -> 
             items
             |> List.map parseParameter
             |> List.fold (fun state i -> i |> ParsingState.combine' state) ( [] |> ParsingState.success)
-            |> ParsingState.bindWith (fun p -> Some <| Inlined p)
+            |> ParsingState.bindWith (fun p -> Some p)
         | _ -> None |> ParsingState.success
 
     let! rs = parseResponses node
