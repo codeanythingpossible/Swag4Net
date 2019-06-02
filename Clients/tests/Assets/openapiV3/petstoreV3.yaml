@@ -95,6 +95,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /users/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: the user identifier, as userId 
+      schema:
+        type: string
+    get:
+      operationId: userById
+      responses:
+        '200':
+          description: the user being returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - name
+                discriminator:
+                  propertyName: petType
+                  mapping:
+                    dog: '#/components/schemas/Dog'
+                    monster: 'https://gigantic-server.com/schemas/Monster/schema.json'
+                properties:
+                  name:
+                    type: string
+                  address:
+                    $ref: '#/components/schemas/Address'
+                  age:
+                    type: integer
+                    format: int32
+                    minimum: 0
+          links:
+            address:
+              # the target link operationId
+              operationId: getUserAddress
+              parameters:
+                # get the `id` field from the request path parameter named `id`
+                userId: $request.path.id
 components:
   schemas:
     Pet:

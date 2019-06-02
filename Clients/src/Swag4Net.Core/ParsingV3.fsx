@@ -95,7 +95,7 @@ type ParsingWorkflowBuilder() =
   member this.Bind(m:Result<'T, ParsingError>, f:'T -> ParsingState<'U>) = 
     let state = m |> ParsingState.ofResult
     this.Bind(state, f)
-  
+
   member this.Bind(error:ParsingError, f:'T -> ParsingState<'U>) = 
     let m = Error error
     let state = m |> ParsingState.ofResult
@@ -105,11 +105,7 @@ type ParsingWorkflowBuilder() =
     match results with
     | Ok states ->
         match states with
-        //| [] when typeof<System.Collections.IEnumerable>.IsAssignableFrom typeof<'U> ->
-        //    InvalidFormat "HAHAHA" |> Error |> ParsingState.ofResult |> ParsingState.bind f
-        | [] -> 
-            f []
-            //InvalidFormat "Missing elements" |> Error |> ParsingState.ofResult |> ParsingState.bind f
+        | [] -> f []
         | h :: t -> 
             let r = match h.Result with Ok i -> Ok [i] | Error e -> Error e
             let head : ParsingState<'T list> = { Result=r; Warnings=h.Warnings }
@@ -119,11 +115,7 @@ type ParsingWorkflowBuilder() =
 
   member this.Bind(states:ParsingState<'T> list, f:'T list -> ParsingState<'U> ) : ParsingState<'U> = 
     match states with
-    | [] when typeof<System.Collections.IEnumerable>.IsAssignableFrom typeof<'U> ->
-        InvalidFormat "HAHAHA" |> Error |> ParsingState.ofResult |> ParsingState.bind f
-    | [] -> 
-        f []
-        //InvalidFormat "Missing elements 2" |> Error |> ParsingState.ofResult |> ParsingState.bind f
+    | [] -> f []
     | h :: t -> 
         let r = match h.Result with Ok i -> Ok [i] | Error e -> Error e
         let head : ParsingState<'T list> = { Result=r; Warnings=h.Warnings }
@@ -176,6 +168,17 @@ let readString name (token:Value) =
 let readStringOption name (token:Value) =
   match token |> selectToken name with
   | Some (RawValue v) -> Some (string v)
+  | _ -> None
+
+let readIntOption name (token:Value) =
+  match token |> selectToken name with
+  | Some (RawValue v) -> 
+      match v with
+      | :? Int32 as i -> Some (i)
+      | :? Int16 as i -> Some (int i)
+      | :? Int64 as i -> Some (int i)
+      | :? String as i -> Some (int i)
+      | _ -> None
   | _ -> None
 
 let readBoolWithDefault name defaultValue (token:Value) =
@@ -248,19 +251,7 @@ let (|IsEnum|_|) =
         props
         |> List.choose (
               function
-              | ("enum", v) ->
-                  readStringArray v
-                  //match v with
-                  //| SCollection values -> 
-                  //    values
-                  //    |> List.choose (
-                  //        fun item ->
-                  //          match item with
-                  //          | RawValue v -> Some (v.ToString()) 
-                  //          | _ -> None
-                  //      )
-                  //    |> Some
-                  //| _ -> None
+              | ("enum", v) -> readStringArray v
               | _ -> None
             )
         |> List.tryHead
@@ -330,7 +321,20 @@ let servers node : ParsingState<Server list> =
     return servers
   }
 
-let parseInlinedOrReferenced f node =
+let parseInlinedOrReferenced f node : ParsingState<'T InlinedOrReferenced> =
+  parsing {
+    let! r =
+        match node with
+        | SObject ["$ref", RawValue link] ->
+            Referenced (string link)
+            |> ParsingState.success
+        | SObject _ as v -> 
+            v |> f |> ParsingState.map (fun s -> Inlined s)
+        | _ -> ParsingState.FailureOf <| InvalidFormat "Could not determine if value is $ref or object"
+    return r
+  }
+
+let parseOptionalInlinedOrReferenced f node  : ParsingState<'T InlinedOrReferenced option> =
   match node with
   | Some (SObject ["$ref", RawValue link]) ->
       if link |> isNull
@@ -340,7 +344,7 @@ let parseInlinedOrReferenced f node =
   | Some v -> v |> f |> ParsingState.map (fun r -> Some (Inlined r))
   | _ -> None |> ParsingState.success
 
-let parseSchema node =
+let rec parseSchema node =
   parsing {
     let! r =
         match node with
@@ -348,40 +352,102 @@ let parseSchema node =
             let o = SObject props
             parsing {
               let! typ = o |> readString "type"
+
+              let! properties =
+                parsing {
+                  match o |> selectToken "properties" with
+                  | Some (SObject props) -> 
+                      let! r =
+                        props
+                        |> List.map (
+                            fun (name, v) -> 
+                              let schema = parseInlinedOrReferenced parseSchema v
+                              schema |> ParsingState.map (fun s -> name,s)
+                            )
+                      return Some (Map r)
+                  | _ -> return None
+                }
+
+              let parseInheritance name =
+                node |> selectToken name |> parseOptionalInlinedOrReferenced parseSchema
+
+              let! allOf = parseInheritance "allOf"
+              let! oneOf = parseInheritance "oneOf"
+              let! anyOf = parseInheritance "anyOf"
+              let! ``not`` = parseInheritance "not"
+              let! multipleOf = parseInheritance "multipleOf"
+
+              let! externalDocs = 
+                parsing {
+                  match o |> selectToken "externalDocs" with
+                  | None -> return None
+                  | Some _ ->
+                      let! u = o |> readString "externalDocs.url"
+                      return 
+                        Some
+                          { Description = o |> readStringOption "externalDocs.description"
+                            Url=u }
+                  }
+
+              let! discriminator =
+                parsing {
+                  match o |> selectToken "discriminator" with
+                  | None -> return None
+                  | Some d -> 
+                      let! pn = d |> readString "propertyName"
+                      let mapping =
+                        d
+                        |> selectToken "mapping" 
+                        |> Option.bind (
+                            function
+                            | SObject props ->
+                                props
+                                |> List.choose (
+                                    function
+                                    | name, RawValue v -> Some (name, v.ToString())
+                                    | _ -> None
+                                   )
+                                |> Map
+                                |> Some
+                            | _ -> None
+                           )
+                      return Some { PropertyName=pn; Mapping = mapping }
+                }
+
               return 
                  { Title = o |> readStringOption "title"
                    Type = typ
-                   AllOf = None
-                   OneOf = None
-                   AnyOf = None
-                   Not = None
-                   MultipleOf = None
+                   AllOf = allOf
+                   OneOf = oneOf
+                   AnyOf = anyOf
+                   Not = ``not``
+                   MultipleOf = multipleOf
                    Items = None
-                   Maximum = None
-                   ExclusiveMaximum = None
-                   Minimum = None
-                   ExclusiveMinimum = None
-                   MaxLength = None
-                   MinLength = None
-                   Pattern = None
-                   MaxItems = None
-                   MinItems = None
+                   Maximum = o |> readIntOption "maximum"
+                   ExclusiveMaximum = o |> readIntOption "exclusiveMaximum"
+                   Minimum = o |> readIntOption "minimum"
+                   ExclusiveMinimum = o |> readIntOption "exclusiveMinimum"
+                   MaxLength = o |> readIntOption "maxLength"
+                   MinLength = o |> readIntOption "minLength"
+                   Pattern = o |> readStringOption "pattern"
+                   MaxItems = o |> readIntOption "maxItems"
+                   MinItems = o |> readIntOption "minItems"
                    UniqueItems = None
-                   MaxProperties = None
-                   MinProperties = None
-                   Properties = None
+                   MaxProperties = o |> readIntOption "maxProperties"
+                   MinProperties = o |> readIntOption "minProperties"
+                   Properties = properties
                    AdditionalProperties = None
-                   Required = None
-                   Nullable = None
+                   Required = o |> readBool "required"
+                   Nullable = o |> readBool "nullable"
                    Enum = None
                    Format = o |> readStringOption "format"
-                   Discriminator = None
-                   Readonly = None
-                   WriteOnly = None
+                   Discriminator = discriminator
+                   Readonly = o |> readBool "readOnly"
+                   WriteOnly = o |> readBool "writeOnly"
                    Xml = None
-                   ExternalDocs = None
+                   ExternalDocs = externalDocs
                    Example = None
-                   Deprecated=false
+                   Deprecated = o |> readBool "deprecated"
                  }
               }
         | _ -> ParsingState.FailureOf <| InvalidFormat "Invalid schema format"
@@ -390,16 +456,10 @@ let parseSchema node =
 
 let parseSchemaRef node : ParsingState<Schema InlinedOrReferenced option> =
   parsing {
-    let! r =
-        match node |> selectToken "schema" with
-        | Some (SObject ["$ref", RawValue link]) ->
-            if link |> isNull
-            then None
-            else Some (Referenced (string link))
-            |> ParsingState.success
-        | Some v -> 
-            v |> parseSchema |> ParsingState.map (fun s -> Some <| Inlined s)
-        | _ -> None |> ParsingState.success
+    let! r = 
+      node
+      |> selectToken "schema"
+      |> parseOptionalInlinedOrReferenced parseSchema
     return r
   }
 
@@ -426,33 +486,81 @@ let parseParameter node : ParsingState<Parameter> =
         Content = None }
   }
 
+let parseContent node : Map<MimeType, PayloadDefinition> option ParsingState =
+  parsing {
+
+    match node with
+    | SObject props -> 
+        let! r = 
+          props
+          |> List.map (
+              fun (mimetype, n) ->
+                let schema = 
+                  parseSchemaRef n
+                  |> ParsingState.map (
+                        fun s -> 
+                          match s with
+                          | Some o ->
+                              let d = 
+                                { Schema = o
+                                  Examples = Map.empty //Map<string, Example InlinedOrReferenced>
+                                  Encoding = Map.empty } //Map<string, Encoding>
+                              Some (mimetype, d)
+                          | None -> None
+                      )
+                schema
+             )
+        
+        return r |> List.choose id |> Map |> Some
+    | _ -> 
+      return None
+  }
+
 let parseResponse node : Response ParsingState =
   parsing {
     let! description = node |> readString "description"
+    let! content = 
+      match node |> selectToken "content" with
+      | Some (SObject _ as o) -> o |> parseContent
+      | _ -> None |> ParsingState.success
 
     return
       { Description = description
         Headers = None
-        Content = None
+        Content = content
         Links = None }
   }
 
 let parseResponses node =
   parsing {
     match node |> selectToken "responses" with
-    | Some n -> 
+    | Some(SObject props) -> 
         
         let! def = 
           node
           |> selectToken "responses.default"
-          |> parseInlinedOrReferenced parseResponse
+          |> parseOptionalInlinedOrReferenced parseResponse
+
+        let! responsesDefinitions = 
+          props
+          |> List.filter (fun i -> i |> fst <> "default")
+          |> List.distinctBy fst
+          |> List.map (
+               fun (code, n) -> 
+                (parseOptionalInlinedOrReferenced parseResponse) (Some n) |> ParsingState.map (fun r -> code,r)
+             )
+
+        let responses =
+          responsesDefinitions
+          |> List.choose (fun (code,r) -> r |> Option.map (fun v -> code,v) )
+          |> Map
 
         return 
           {
-            Responses = Map []
+            Responses = responses
             Default = def
           }
-    | None -> return { Responses = Map []; Default = None }
+    | _ -> return { Responses = Map []; Default = None }
   }
 
 let operation template verb node =
@@ -508,6 +616,7 @@ let operation template verb node =
   }
 
 let (paths : ParsingState<Map<string,Path>>) =
+  let httpVerbs = ["get";"post";"put";"patch";"head";"delete";"options";"trace"]
   parsing {
     let! (operations : (Name * Name * Operation) list) = 
       match doc |> selectToken "paths" with
@@ -516,7 +625,10 @@ let (paths : ParsingState<Map<string,Path>>) =
           |> List.choose (
                function
                | (template, SObject props) -> 
-                    let methods = props |> List.map (fun (verb, r) -> operation template verb r)
+                    let methods = 
+                      props 
+                      |> List.filter(fun (verb,_) -> httpVerbs |> List.contains verb)
+                      |> List.map (fun (verb, r) -> operation template verb r)
                     Some (template, methods)
                | _ -> None
              )
