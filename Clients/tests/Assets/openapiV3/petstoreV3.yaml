@@ -69,6 +69,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    parameters:
+    - name: requestId
+      in: header
+      description: ID of pet to use
+      required: true
+      schema:
+        type: array
+        style: simple
+      items:
+        type: string
+
+    servers:
+    - url: https://{username}.gigantic-server3.com:{port}/{basePath}
+      description: The production API server 3
+
   /pets/{petId}:
     get:
       summary: Info for a specific pet
@@ -130,10 +145,8 @@ paths:
                     minimum: 0
           links:
             address:
-              # the target link operationId
               operationId: getUserAddress
               parameters:
-                # get the `id` field from the request path parameter named `id`
                 userId: $request.path.id
 components:
   schemas:

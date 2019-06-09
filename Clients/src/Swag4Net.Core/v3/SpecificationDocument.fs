@@ -15,7 +15,7 @@ module SpecificationDocument =
   type Documentation =
     { Standard: Standard
       Infos:Infos
-      Servers:Server list option
+      Servers:Server list
       Paths:Map<string, Path>
       Components:Components option
       Security:SecurityRequirement list option
@@ -75,7 +75,7 @@ module SpecificationDocument =
       Patch:Operation option
       Trace:Operation option
       Servers:Server list option
-      Parameters:Parameter list InlinedOrReferenced option
+      Parameters:Parameter InlinedOrReferenced list option
       }
   and Operation =
     {
@@ -121,7 +121,7 @@ module SpecificationDocument =
       AnyOf: Schema InlinedOrReferenced option
       Not: Schema InlinedOrReferenced option
       MultipleOf: Schema InlinedOrReferenced option
-      Items: ItemType option
+      Items: Schema InlinedOrReferenced option
       Maximum: int option
       ExclusiveMaximum: int option
       Minimum: int option
@@ -136,7 +136,7 @@ module SpecificationDocument =
       MinProperties: int option
       Properties: Map<string, Schema InlinedOrReferenced> option
       AdditionalProperties: AdditionalProperties option
-      Required: bool
+      Required: string list option
       Nullable: bool
       Enum: Any list option
       Format: DataTypeFormat option
@@ -150,10 +150,6 @@ module SpecificationDocument =
   and AdditionalProperties =
     | B of bool
     | M of Map<string, Schema>
-  and ItemType =
-    | T of TypeName
-    | S of Schema
-    | R of Reference
   and Response =
     {
       Description: string
