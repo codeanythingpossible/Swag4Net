@@ -179,8 +179,16 @@ let rec parseSchema node =
                 }
 
               let parseInheritance name =
-                node |> selectToken name |> parseOptionalInlinedOrReferenced parseSchema
-
+                match node |> selectToken name with
+                | Some(SObject _  as n) ->
+                    n |> parseInlinedOrReferenced parseSchema |> ParsingState.map (fun s -> Some [s])
+                | Some(SCollection items) ->
+                    parsing {
+                      let! b = items |> List.map (parseInlinedOrReferenced parseSchema)
+                      return Some b
+                    }
+                | _ -> ParsingState.success None
+                
               let! items =
                 node |> selectToken "items" |> parseOptionalInlinedOrReferenced parseSchema
 
@@ -308,7 +316,7 @@ let parseParameter node : ParsingState<Parameter InlinedOrReferenced> =
               Content = None }
   }
 
-let parseContent node : Map<MimeType, PayloadDefinition> option ParsingState =
+let parseContent node : Map<MimeType, MediaType> option ParsingState =
   parsing {
 
     match node with

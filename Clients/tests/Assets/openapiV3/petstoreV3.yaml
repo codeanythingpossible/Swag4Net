@@ -177,6 +177,16 @@ components:
         message:
           type: string
 
+    ExtendedErrorModel:
+      oneOf:
+        - $ref: "#/components/schemas/ErrorModel"
+        - type: object
+          required:
+          - rootCause
+          properties:
+            rootCause:
+              type: string
+
   parameters:
     offsetParam:      # Can be referenced via '#/components/parameters/offsetParam'
       name: offset

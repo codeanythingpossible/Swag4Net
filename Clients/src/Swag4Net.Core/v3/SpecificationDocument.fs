@@ -33,7 +33,7 @@ module SpecificationDocument =
       License:License option }
   and Request =
     { Description: string option
-      Content: Map<string, PayloadDefinition>
+      Content: Map<string, MediaType>
       Required: bool }
   and Components =
     { Schemas: Map<string, InlinedOrReferenced<Schema>> option
@@ -105,9 +105,9 @@ module SpecificationDocument =
         Schema: Schema InlinedOrReferenced option
         Example: Any option
         Examples: Map<string, Example InlinedOrReferenced> option
-        Content: Map<MimeType, PayloadDefinition> option }
+        Content: Map<MimeType, MediaType> option }
   and MimeType = string
-  and PayloadDefinition =
+  and MediaType =
     {
       Schema: Schema InlinedOrReferenced
       Examples: Map<string, Example InlinedOrReferenced>
@@ -116,11 +116,11 @@ module SpecificationDocument =
     {
       Title: string option
       Type: string
-      AllOf: Schema InlinedOrReferenced option
-      OneOf: Schema InlinedOrReferenced option
-      AnyOf: Schema InlinedOrReferenced option
-      Not: Schema InlinedOrReferenced option
-      MultipleOf: Schema InlinedOrReferenced option
+      AllOf: Schema InlinedOrReferenced list option
+      OneOf: Schema InlinedOrReferenced list option
+      AnyOf: Schema InlinedOrReferenced list option
+      Not: Schema InlinedOrReferenced list option
+      MultipleOf: Schema InlinedOrReferenced list option
       Items: Schema InlinedOrReferenced option
       Maximum: int option
       ExclusiveMaximum: int option
@@ -154,7 +154,7 @@ module SpecificationDocument =
     {
       Description: string
       Headers: Map<string, InlinedOrReferenced<Header>> option
-      Content: Map<MimeType, PayloadDefinition> option
+      Content: Map<MimeType, MediaType> option
       Links: Map<string, InlinedOrReferenced<Link>> option }
   and Responses = 
     {
@@ -195,7 +195,7 @@ module SpecificationDocument =
         Schema: InlinedOrReferenced<Schema>
         Example: Any
         Examples: Map<string, InlinedOrReferenced<Example>>
-        Content: Map<string, PayloadDefinition> }
+        Content: Map<string, MediaType> }
   and Tag =
     {
       Name: string

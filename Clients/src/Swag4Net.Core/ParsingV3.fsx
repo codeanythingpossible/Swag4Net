@@ -20,21 +20,20 @@ open Parsing
 let (/>) a b = Path.Combine(a, b)
 
 let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> "openapiV3" /> "petstoreV3.yaml" |> File.ReadAllText
-
 let doc = fromYaml specv3File
-
-
 let spec = parseOpenApiDocument doc
 
+spec |> Result.map (fun r -> r.Components.Value.Schemas.Value.Item "ExtendedErrorModel")
 
-spec |> Result.map (fun r -> r.Paths.Item "/pets")
 
 
-spec
- |> Result.map (
-    fun r -> 
-      r.Paths
-      |> Map.toList
-      |> List.filter (fun (k,v) -> v.Get.Value.OperationId = "showPetById")
-    )
+//spec |> Result.map (fun r -> r.Paths.Item "/pets")
+
+//spec
+// |> Result.map (
+//    fun r -> 
+//      r.Paths
+//      |> Map.toList
+//      |> List.filter (fun (k,v) -> v.Get.Value.OperationId = "showPetById")
+//    )
 
