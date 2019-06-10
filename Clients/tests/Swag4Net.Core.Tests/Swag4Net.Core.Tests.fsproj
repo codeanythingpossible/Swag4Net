@@ -16,6 +16,7 @@
     <Compile Include="v3\ParsingTests.fs" />
     <Compile Include="v2\ParsingTests.fs" />
     <Compile Include="Program.fs" />
+    <Content Include="petstoreV3.yaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Swag4Net.Core\Swag4Net.Core.fsproj" />
@@ -30,4 +31,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
 </Project>

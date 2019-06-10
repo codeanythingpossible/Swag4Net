@@ -5,18 +5,22 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Document.fs" />
+    <Compile Include="Parsing.fs" />
     <Compile Include="ApiModel.fs" />
     <EmbeddedResource Include="v3\openapi-jsonschema.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <Compile Include="v3\SpecificationDocument.fs" />
     <Compile Include="v3\JsonParser.fs" />
+    <Compile Include="v3\Parser.fs" />
     <Compile Include="Validator.fs" />
     <Compile Include="Parser.fs" />    
   </ItemGroup>
   <ItemGroup>
     <None Include="abstract_parser.fsx" />
     <None Include="script.fsx" />
+    <None Include="ParsingV3.fsx" />
+    <None Include="computation-learning.fsx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />

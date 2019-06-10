@@ -9,8 +9,14 @@ module Program =
    *)
   
   let [<EntryPoint>] main args =
-    let mutable result = runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.v2.ParsingTests.tests
-    let result = result + runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.v3.ParsingTests.tests
-    let result = result + runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.ParserTests.tests
-    let result = result + runTestsWithArgs defaultConfig args Swag4Net.Code.Tests.ValidatorTests.tests
+
+    let runTests = runTestsWithArgs defaultConfig args
+
+    let result =
+      [ Swag4Net.Code.Tests.v2.ParsingTests.tests
+        //Swag4Net.Code.Tests.v3.ParsingTests.tests
+        Swag4Net.Code.Tests.ParserTests.tests
+        Swag4Net.Code.Tests.ValidatorTests.tests ]
+      |> List.fold (fun r t -> r + runTests t) 0
+    
     result

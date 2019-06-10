@@ -5,23 +5,7 @@ info:
   license:
     name: MIT
 servers:
-    - url: https://{username}.gigantic-server.com:{port}/{basePath}
-      description: The production API server
-      variables:
-        username:
-          # note! no enum here means it is an open value
-          default: demo
-          description: this value is assigned by the service provider, in this example `gigantic-server.com`
-        port:
-          enum:
-            - '8443'
-            - '443'
-          default: '8443'
-        basePath:
-          # open meaning there is the opportunity to use special base paths as assigned by the provider, default is `v2`
-          default: v2
-    - url: https://{username}.gigantic-server2.com:{port}/{basePath}
-      description: The production API server 2
+  - url: http://petstore.swagger.io/v1
 paths:
   /pets:
     get:
@@ -69,21 +53,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-    parameters:
-    - name: requestId
-      in: header
-      description: ID of pet to use
-      required: true
-      schema:
-        type: array
-        style: simple
-      items:
-        type: string
-
-    servers:
-    - url: https://{username}.gigantic-server3.com:{port}/{basePath}
-      description: The production API server 3
-
   /pets/{petId}:
     get:
       summary: Info for a specific pet
@@ -110,44 +79,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /users/{id}:
-    parameters:
-    - name: id
-      in: path
-      required: true
-      description: the user identifier, as userId 
-      schema:
-        type: string
-    get:
-      operationId: userById
-      responses:
-        '200':
-          description: the user being returned
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                - name
-                discriminator:
-                  propertyName: petType
-                  mapping:
-                    dog: '#/components/schemas/Dog'
-                    monster: 'https://gigantic-server.com/schemas/Monster/schema.json'
-                properties:
-                  name:
-                    type: string
-                  address:
-                    $ref: '#/components/schemas/Address'
-                  age:
-                    type: integer
-                    format: int32
-                    minimum: 0
-          links:
-            address:
-              operationId: getUserAddress
-              parameters:
-                userId: $request.path.id
 components:
   schemas:
     Pet:

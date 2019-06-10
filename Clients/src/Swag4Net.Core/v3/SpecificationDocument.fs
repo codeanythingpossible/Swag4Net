@@ -7,7 +7,7 @@ module SpecificationDocument =
   type TypeName = string
   type Anchor = Anchor of string
   type HttpStatusCode = string
-  type TypeOrReference<'TTarget> =
+  type InlineOrReference<'TTarget> =
      | Target of 'TTarget
      | Reference of Reference
   and Reference =
@@ -20,7 +20,7 @@ module SpecificationDocument =
   type Documentation =
     { Standard: Standard
       Infos:Infos
-      Servers:Server list option
+      Servers:Server list
       Paths:Map<string, Path>
       Components:Components option
       Security:SecurityRequirement list option
@@ -37,26 +37,26 @@ module SpecificationDocument =
       Contact:Contact option
       License:License option }
   and Request =
-    {
-        Description: string option
-        Content: Map<string, MediaType>
-        Required: bool }
+    { Description: string option
+      Content: Map<string, PayloadDefinition>
+      Required: bool }
   and Components =
-    {
-      Schemas: Map<string, TypeOrReference<Schema>> option
-      Responses: Map<string, TypeOrReference<Response>> option
-      Parameters: Map<string, TypeOrReference<Parameter>> option
-      Examples: Map<string, TypeOrReference<Example>> option
-      RequestBodies: Map<string, TypeOrReference<Request>> option
-      Headers: Map<string, TypeOrReference<Header>> option
-      SecuritySchemes: Map<string, TypeOrReference<SecurityScheme>> option
-      Links: Map<string, TypeOrReference<Link>> option
-      Callbacks: Map<string, TypeOrReference<Callback>> option }
+    { Schemas: Map<string, Schema InlineOrReference> option
+      Responses: Map<string, Response InlineOrReference> option
+      Parameters: Map<string, Parameter InlineOrReference> option
+      Examples: Map<string, Example InlineOrReference> option
+      RequestBodies: Map<string, Request InlineOrReference> option
+      Headers: Map<string, Header InlineOrReference> option
+      SecuritySchemes: Map<string, SecurityScheme InlineOrReference> option
+      Links: Map<string, Link InlineOrReference> option
+      Callbacks: Map<string, Callback InlineOrReference> option }
   and Contact = 
-    | Email of string
-    | Url of Uri
+    { Name: string option
+      Url: Uri option
+      Email: string option }
   and License = 
-    { Name:string; Url:Uri }
+    { Name: string
+      Url: Uri option }
   and Server = 
     {
       Url:Uri
@@ -64,7 +64,7 @@ module SpecificationDocument =
       Variables:Map<string, ServerVariable> option }
   and ServerVariable = 
     {
-      Enum: string list
+      Enum: string list option
       Default: string
       Description: string }
   and Path =
@@ -72,16 +72,16 @@ module SpecificationDocument =
       Reference: string
       Summary:string
       Description:string
-      Get:Operation
-      Put:Operation
-      Post:Operation
-      Delete:Operation
-      Options:Operation
-      Head:Operation
-      Patch:Operation
-      Trace:Operation
-      Servers:Server list
-      Parameters:TypeOrReference<Parameter> list
+      Get:Operation option
+      Put:Operation option
+      Post:Operation option
+      Delete:Operation option
+      Options:Operation option
+      Head:Operation option
+      Patch:Operation option
+      Trace:Operation option
+      Servers:Server list option
+      Parameters:Parameter InlineOrReference list option
       }
   and Operation =
     {
@@ -90,11 +90,11 @@ module SpecificationDocument =
       Description: string option
       ExternalDocs: ExternalDocumentation option
       OperationId: string 
-      Parameters: TypeOrReference<Parameter> list option
-      RequestBody: TypeOrReference<Request> option
+      Parameters: Parameter InlineOrReference list option
+      RequestBody: Request InlineOrReference option
       Responses: Responses
-      Callbacks: Map<string, TypeOrReference<Callback>> option
-      Deprecated: bool option
+      Callbacks: Map<string, Callback InlineOrReference> option
+      Deprecated: bool
       Security: SecurityRequirement list option
       Servers: Server list option }
   and Parameter =
@@ -102,31 +102,32 @@ module SpecificationDocument =
         Name: string
         In: string
         Description: string option
-        Required: bool option
-        Deprecated: bool option
-        AllowEmptyValue: bool option
+        Required: bool
+        Deprecated: bool
+        AllowEmptyValue: bool
         Style: string option
-        Explode: bool option
-        AllowReserved: bool option
-        Schema: TypeOrReference<Schema> option
+        Explode: bool
+        AllowReserved: bool
+        Schema: Schema InlineOrReference option
         Example: Any option
-        Examples: Map<string, TypeOrReference<Example>> option
-        Content: Map<string, MediaType> option }
-  and MediaType =
+        Examples: Map<string, Example InlineOrReference> option
+        Content: Map<MimeType, PayloadDefinition> option }
+  and MimeType = string
+  and PayloadDefinition =
     {
-      Schema: TypeOrReference<Schema>
-      Examples: Map<string, TypeOrReference<Example>>
+      Schema: Schema InlineOrReference
+      Examples: Map<string, Example InlineOrReference>
       Encoding: Map<string, Encoding> }
   and Schema =
     {
-      Type:  string
       Title: string option
-      AllOf: TypeOrReference<Schema> option
-      OneOf: TypeOrReference<Schema> option
-      AnyOf: TypeOrReference<Schema> option
-      Not: TypeOrReference<Schema> option
-      MultipleOf: TypeOrReference<Schema> option
-      Items: ItemType option
+      Type: string
+      AllOf: Schema InlineOrReference option
+      OneOf: Schema InlineOrReference option
+      AnyOf: Schema InlineOrReference option
+      Not: Schema InlineOrReference option
+      MultipleOf: Schema InlineOrReference option
+      Items: Schema InlineOrReference option
       Maximum: int option
       ExclusiveMaximum: int option
       Minimum: int option
@@ -139,15 +140,15 @@ module SpecificationDocument =
       UniqueItems: bool option
       MaxProperties: int option
       MinProperties: int option
-      Properties: Map<string, Schema> option
+      Properties: Map<string, Schema InlineOrReference> option
       AdditionalProperties: AdditionalProperties option
-      Required: bool option
-      Nullable: bool option
+      Required: string list option
+      Nullable: bool
       Enum: Any list option
       Format: DataTypeFormat option
       Discriminator: Discriminator option
-      Readonly: bool option
-      WriteOnly: bool option
+      Readonly: bool
+      WriteOnly: bool
       Xml: Xml option
       ExternalDocs:ExternalDocumentation option
       Example: Any option
@@ -163,13 +164,13 @@ module SpecificationDocument =
   and Response =
     {
       Description: string
-      Headers: Map<string, TypeOrReference<Header>> option
-      Content: Map<string, MediaType> option
-      Links: Map<string, TypeOrReference<Link>> option }
+      Headers: Map<string, Header InlineOrReference> option
+      Content: Map<MimeType, PayloadDefinition> option
+      Links: Map<string, Link InlineOrReference> option }
   and Responses = 
     {
-       Responses: Map<HttpStatusCode, TypeOrReference<Response>>
-       Default: TypeOrReference<Response> option }
+       Responses: Map<HttpStatusCode, Response InlineOrReference>
+       Default: Response InlineOrReference option }
   and SecurityScheme =
     {
       Type: string
@@ -202,10 +203,10 @@ module SpecificationDocument =
         Style: string
         Explode: bool
         AllowReserved: bool
-        Schema: TypeOrReference<Schema>
+        Schema: Schema InlineOrReference
         Example: Any
-        Examples: Map<string, TypeOrReference<Example>>
-        Content: Map<string, MediaType> }
+        Examples: Map<string, Example InlineOrReference>
+        Content: Map<string, PayloadDefinition> }
   and Tag =
     {
       Name: string
@@ -218,7 +219,7 @@ module SpecificationDocument =
   and Encoding =
     {
       ContentType: string
-      Headers: Map<string, TypeOrReference<Header>>
+      Headers: Map<string, Header InlineOrReference>
       Style: string
       Explode: bool
       AllowReserved: bool }

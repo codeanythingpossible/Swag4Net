@@ -6,13 +6,13 @@ open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Schema
 open System.Reflection
 
+#if !INTERACTIVE
 let internal ReadEmbedded(path: string) =
     Assembly.GetExecutingAssembly().GetManifestResourceStream(path)
+#endif
 
-let validateV3 (content:string) =
-    use s = new StreamReader(ReadEmbedded("Swag4Net.Core.v3.openapi-jsonschema.json"))
-    use reader = new JsonTextReader(s)
-    let schema = JSchema.Load(reader)
+let validateV3' (jsonSchema:string) (content:string) =
+    let schema = JSchema.Parse jsonSchema
     let json = JObject.Parse content
     let errors = ref []
     json.Validate(schema, fun _ evtArg -> errors := evtArg.Message :: !errors)
@@ -20,3 +20,13 @@ let validateV3 (content:string) =
         Error(!errors)
     else
         Ok()
+
+#if !INTERACTIVE
+
+let validateV3 =
+  use stream = "Swag4Net.Core.v3.openapi-jsonschema.json" |> ReadEmbedded
+  use reader = new StreamReader(stream)
+  let schema = reader.ReadToEnd()
+  validateV3' schema
+
+#endif
