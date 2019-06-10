@@ -3,7 +3,7 @@
 //https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#parameterIn
 //https://swagger.io/docs/specification/data-models/data-types/
 
-open Swag4Net.Core.SpecificationModel
+open Swag4Net.Core.ApiModel
 open System
 open Swag4Net.Core.Document
 
@@ -354,7 +354,6 @@ module Parser =
       { Infos = infos
         Host = spec |> readString "host"
         BasePath = spec |> readString "basePath"
-        Schemes = spec |> selectToken "schemes" |> readStringList
         ExternalDocs = Map.empty
         Routes = routes
         Definitions = definitions }
@@ -367,7 +366,6 @@ module Parser =
       { Infos = infos
         Host = spec |> readString "host"
         BasePath = spec |> readString "basePath"
-        Schemes = spec |> selectToken "schemes" |> readStringList
         ExternalDocs = Map.empty
         Routes = routes
         Definitions = [] }

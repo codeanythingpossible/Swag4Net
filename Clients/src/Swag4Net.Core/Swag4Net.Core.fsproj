@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Document.fs" />
-    <Compile Include="SpecificationModel.fs" />
+    <Compile Include="ApiModel.fs" />
     <EmbeddedResource Include="v3\openapi-jsonschema.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>

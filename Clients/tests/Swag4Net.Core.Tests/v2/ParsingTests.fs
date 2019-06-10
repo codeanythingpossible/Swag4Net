@@ -6,7 +6,7 @@ module ParsingTests =
     open Expecto
     open System.Net
     open System.Net.Http
-    open SpecificationModel
+    open ApiModel
     open System
     open DocumentModel
 

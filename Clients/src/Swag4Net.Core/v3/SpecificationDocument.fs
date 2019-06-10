@@ -119,6 +119,7 @@ module SpecificationDocument =
       Encoding: Map<string, Encoding> }
   and Schema =
     {
+      Type:  string
       Title: string option
       AllOf: TypeOrReference<Schema> option
       OneOf: TypeOrReference<Schema> option

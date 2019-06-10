@@ -4,7 +4,7 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
 open Swag4Net.Core
-open SpecificationModel
+open ApiModel
 
 module CodeGeneration =
 
@@ -374,7 +374,7 @@ module CsharpGenerator =
         .AddModifiers(SyntaxFactory.Token SyntaxKind.PublicKeyword)
         .AddMembers(members)
 
-  let generateTagInterface (settings:GenerationSettings) (swagger:Documentation) (tag:string option) (name:string) =
+  let generateTagInterface (settings:GenerationSettings) (swagger:Api) (tag:string option) (name:string) =
     let methods = 
       swagger.Routes
       |> Seq.filter
@@ -391,7 +391,7 @@ module CsharpGenerator =
       .AddModifiers(SyntaxFactory.Token SyntaxKind.PublicKeyword)
       .AddMembers(methods) :> MemberDeclarationSyntax
   
-  let generateClientClass (settings:GenerationSettings) (swagger:Documentation) (tag:string option) name =
+  let generateClientClass (settings:GenerationSettings) (swagger:Api) (tag:string option) name =
     let constructors =
       [|
         callBaseConstructor "baseUrl" "string" name
@@ -417,7 +417,7 @@ module CsharpGenerator =
           .AddMembers(constructors)
           .AddMembers(methods) :> MemberDeclarationSyntax
   
-  let generateClientsClasses (settings:GenerationSettings) (swagger:Documentation) name =
+  let generateClientsClasses (settings:GenerationSettings) (swagger:Api) name =
     let clients =
       swagger.Routes
       |> List.collect (fun r -> r.Tags)
@@ -445,7 +445,7 @@ module CsharpGenerator =
         .NormalizeWhitespace()
         .AddMembers(interfaceNotTagged :: clientNotTagged :: clients |> List.toArray)
 
-  let generateClients (settings:GenerationSettings) (swagger:Documentation) name =
+  let generateClients (settings:GenerationSettings) (swagger:Api) name =
     let ns = generateClientsClasses settings swagger name
     let syntaxFactory =
       SyntaxFactory.CompilationUnit()
