@@ -23,35 +23,6 @@ let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> 
 
 let doc = fromYaml specv3File
 
-let parseComponents =
-  parsing {
-    let! schemas = 
-      match doc |> selectToken "components.schemas" with
-      | Some (SObject props) -> 
-            parsing {
-              let! r =
-                props
-                |> List.map (
-                    fun (name, s) -> 
-                      s
-                      |> parseSchema
-                      |> ParsingState.map (fun p -> name,Inlined p)
-                    )
-              return Some (Map r)
-            } 
-      | _ -> ParsingState.success None
-
-    return 
-      { Schemas=schemas
-        Responses=None
-        Parameters=None
-        Examples=None
-        RequestBodies=None
-        Headers=None
-        SecuritySchemes=None
-        Links=None
-        Callbacks=None }
-  }
 
 let spec = parseOpenApiDocument doc
 

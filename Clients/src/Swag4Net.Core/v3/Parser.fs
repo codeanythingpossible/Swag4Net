@@ -265,7 +265,9 @@ let rec parseSchema node =
                    Deprecated = o |> readBool "deprecated"
                  }
               }
-        | _ -> ParsingState.FailureOf <| InvalidFormat "Invalid schema format"
+        | _ ->
+            let message = sprintf "Invalid schema format %A" node
+            ParsingState.FailureOf <| InvalidFormat message
     return r
   }
 
@@ -495,19 +497,63 @@ let parseStandard doc =
              Version = version }
   }
 
+
+let parseComponents doc =
+  parsing {
+    let parseComponentSection path parser (f: (string*'U) -> 'V) =
+      match doc |> selectToken path with
+      | Some (SObject props) -> 
+            parsing {
+              let! r =
+                props
+                |> List.map (
+                    fun (name, s) -> 
+                      s
+                      |> parser
+                      |> ParsingState.map (fun p -> f (name,p))
+                    )
+              return Some (Map r)
+            }
+      | _ -> ParsingState.success None
+
+    let! schemas = 
+      parseComponentSection "components.schemas" parseSchema (fun (name,p) -> name,Inlined p)
+
+    let! parameters = 
+      parseComponentSection "components.parameters" parseParameter (fun (name,p) -> name,p)     
+
+    let! responses = 
+      parseComponentSection "components.responses" parseResponse (fun (name,p) -> name,Inlined p)     
+
+    return 
+        { Schemas=schemas
+          Responses=responses
+          Parameters=parameters
+          Examples=None
+          RequestBodies=None
+          Headers=None
+          SecuritySchemes=None
+          Links=None
+          Callbacks=None }
+  }
+
 let parseOpenApiDocument doc =
   parsing {
     let! infos = parseInfos doc
     let! standard = parseStandard doc
     let! paths = parsePaths doc
     let! servers = parseServers doc
+    let! components = 
+      match doc |> selectToken "components" with
+      | Some (SObject _) -> parseComponents doc |> ParsingState.map Some
+      | _ -> ParsingState.success None
 
     return
       { Standard = standard
         Infos = infos
         Servers = servers
         Paths = paths
-        Components = None
+        Components = components
         Security = None
         Tags = None
         ExternalDocs = None }

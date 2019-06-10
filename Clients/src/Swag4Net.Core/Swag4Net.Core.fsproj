@@ -11,7 +11,6 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <Compile Include="v3\SpecificationDocument.fs" />
-    <Compile Include="v3\JsonParser.fs" />
     <Compile Include="v3\Parser.fs" />
     <Compile Include="Validator.fs" />
     <Compile Include="Parser.fs" />    
