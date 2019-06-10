@@ -104,10 +104,10 @@ module ApiModel =
       PropertyName: string
       Mapping: Map<string, string> option }
 
-   let internal _primaryTypes = ["string"; "integer"; "bool"; "decimal"; "number"; "datetime"]
+  let internal _primaryTypes = ["string"; "integer"; "bool"; "decimal"; "number"; "float"; "double"; "datetime"]
 
-   let IsArray (schema:Schema) :bool =
+  let IsArray (schema:Schema) :bool =
       schema.Type = "array" && not schema.Items.IsNone
 
-   let IsPrimary (schema:Schema) :bool =
+  let IsPrimary (schema:Schema) :bool =
       List.exists (fun t -> t = schema.Type) _primaryTypes
