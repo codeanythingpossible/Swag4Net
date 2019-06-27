@@ -158,8 +158,7 @@ let rec parseSchema node =
   parsing {
     let! r =
         match node with
-        | SObject props ->
-            let o = SObject props
+        | XObject _ as o ->
             parsing {
               let typ = o |> readStringOption "type" |> Option.defaultValue "object"
 
@@ -450,7 +449,7 @@ let parsePaths doc : ParsingState<Map<string,Path>> =
           p
           |> List.choose (
                function
-               | (template, (SObject props as node)) -> 
+               | (template, (XObject(path, props) as node)) -> 
                     let methods = 
                       props 
                       |> List.filter(fun (verb,_) -> httpVerbs |> List.contains verb)

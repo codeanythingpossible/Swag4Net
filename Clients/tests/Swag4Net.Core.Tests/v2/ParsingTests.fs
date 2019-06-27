@@ -3,12 +3,12 @@ namespace Swag4Net.Code.Tests.v2
 module ParsingTests =
     open System.IO
     open Swag4Net.Core
+    open Swag4Net.Core.v2
     open Expecto
     open System.Net
     open System.Net.Http
     open SpecificationModel
     open System
-    open DocumentModel
 
     let (/>) a b = Path.Combine(a, b)
 
@@ -17,10 +17,10 @@ module ParsingTests =
 
     let parseProps (json:string) = 
       match Document.fromJson json with
-      | Document.SObject props -> props
+      | Document.SObject props -> Document.XObject(".", props)
       | _ -> failtest "json has not expected structure"
 
-    let loadReference : Parser.ResourceProvider =
+    let loadReference : SwaggerParser.ResourceProvider =
       fun ctx ->
         match ctx.Reference with
         | InnerReference (Anchor a) -> 
@@ -31,7 +31,7 @@ module ParsingTests =
                   match token with
                   | None -> Error "path not found"
                   | Some v -> 
-                      let name = Parser.resolveRefName a
+                      let name = SwaggerParser.resolveRefName a
                       Ok { Name=name; Content=v }
             }
         | _ -> async { return Error "not implemented" }
@@ -50,7 +50,7 @@ module ParsingTests =
                     "put": { }
                     }
                   }
-               }""" |> Document.fromJson |> Parser.parseRoutes loadReference
+               }""" |> Document.fromJson |> SwaggerParser.parseRoutes loadReference
             Expect.equal routes.Length 3 "routes count should match"
           }
       
@@ -108,7 +108,7 @@ module ParsingTests =
                     }
                   }
                 }
-               }""" |> Document.fromJson |> Parser.parseRoutes loadReference |> Seq.head
+               }""" |> Document.fromJson |> SwaggerParser.parseRoutes loadReference |> Seq.head
         
             Expect.equal route.Path "/pet" "path should be equal"
             Expect.equal route.Summary "Add a new pet to the store" "summary should be equal"
@@ -155,7 +155,7 @@ module ParsingTests =
                   "required": true,
                   "type": "integer",
                   "format": "int32"
-                }""" |> parseProps |> Parser.parseParameter spec loadReference
+                }""" |> parseProps |> SwaggerParser.parseParameter spec loadReference
             
               Expect.equal parameter
                   (Some { Location=InPath
@@ -177,7 +177,7 @@ module ParsingTests =
                   "required": true,
                   "type": "integer",
                   "format": "int64"
-                }""" |> parseProps |> Parser.parseParameter spec loadReference
+                }""" |> parseProps |> SwaggerParser.parseParameter spec loadReference
             
               Expect.equal parameter
                   (Some { Location=InPath
@@ -193,70 +193,70 @@ module ParsingTests =
             test "Parsing int64 data type" {
               let actual =
                 """{ "type": "integer", "format": "int64" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType DataType.Integer64)) "data type should be equal"
             }
         
             test "Parsing int32 data type" {
               let actual =
                 """{ "type": "integer", "format": "int32" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType DataType.Integer)) "data type should be equal"
             }
         
             test "Parsing boolean data type" {
               let actual =
                 """{ "type": "boolean" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType DataType.Boolean)) "data type should be equal"
             }    
         
             test "Parsing string data type" {
               let actual =
                 """{ "type": "string" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok (PrimaryType (DataType.String None))) "data type should be equal"
             }
         
             test "Parsing string data type with invalid format should fallback to simple string" {
               let actual =
                 """{ "type": "string", "format": "lalala" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType (DataType.String None))) "data type should be equal"
             }
               
             test "Parsing string data type with date format" {
               let actual =
                 """{ "type": "string", "format": "date" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Date)))) "data type should be equal"
             }
   
             test "Parsing string data type with datetime format" {
               let actual =
                 """{ "type": "string", "format": "date-time" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.DateTime)))) "data type should be equal"
             }
   
             test "Parsing string data type with password format" {
               let actual =
                 """{ "type": "string", "format": "password" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Password)))) "data type should be equal"
             }
         
             test "Parsing string data type with binary format" {
               let actual =
                 """{ "type": "string", "format": "binary" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Binary)))) "data type should be equal"
             }
         
             test "Parsing string data type with byte format" {
               let actual =
                 """{ "type": "string", "format": "byte" }"""
-                |> Document.fromJson |> Parser.parseDataType spec loadReference
+                |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
               Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Base64Encoded)))) "data type should be equal"
             }
         
@@ -277,7 +277,7 @@ module ParsingTests =
                 "404": {
                   "description": "Pet not found"
                 }
-              }""" |> Document.fromJson |> Parser.parseResponses spec loadReference
+              }""" |> Document.fromJson |> SwaggerParser.parseResponses spec loadReference
             Expect.sequenceEqual responses
                 [
                   {
@@ -360,7 +360,7 @@ module ParsingTests =
                     }
                   }
                 } }"""
-              |> Document.fromJson |> Parser.parseSchemas spec loadReference |> Seq.head
+              |> Document.fromJson |> SwaggerParser.parseSchemas spec loadReference |> Seq.head
             Expect.equal actual
                 (Ok { Name="ApiResponse"
                       Properties=
@@ -426,7 +426,7 @@ module ParsingTests =
                       }
                     }
                   }"""
-              |> Document.fromJson |> Parser.parseSchemas spec loadReference |> Seq.head
+              |> Document.fromJson |> SwaggerParser.parseSchemas spec loadReference |> Seq.head
 
             Expect.equal actual
               (Ok
@@ -487,8 +487,8 @@ module ParsingTests =
             let json = AppDomain.CurrentDomain.BaseDirectory /> "petstore.json" |> File.ReadAllText
             let yaml = AppDomain.CurrentDomain.BaseDirectory /> "petstore.yaml" |> File.ReadAllText
         
-            let yamlSpec = Parser.parseSwagger loadReference yaml
-            let jsonSpec = Parser.parseSwagger loadReference json
+            let yamlSpec = SwaggerParser.parseSwagger loadReference yaml
+            let jsonSpec = SwaggerParser.parseSwagger loadReference json
 
             Expect.equal yamlSpec jsonSpec "yaml and json should give same spec"
           }

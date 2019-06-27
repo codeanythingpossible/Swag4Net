@@ -4,14 +4,15 @@
     <RootNamespace>Swag4Net.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Document.fs" />
-    <Compile Include="Parsing.fs" />
     <Compile Include="SpecificationModel.fs" />
+    <Compile Include="Document.fs" />
+    <Compile Include="v2\SwaggerParser.fs" />
+    <Compile Include="Parsing.fs" />
+    <Compile Include="v3\SpecificationDocument.fs" />
+    <Compile Include="v3\Parser.fs" />
     <EmbeddedResource Include="v3\openapi-jsonschema.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
-    <Compile Include="v3\SpecificationDocument.fs" />
-    <Compile Include="v3\Parser.fs" />
     <Compile Include="Validator.fs" />
     <Compile Include="Parser.fs" />    
   </ItemGroup>

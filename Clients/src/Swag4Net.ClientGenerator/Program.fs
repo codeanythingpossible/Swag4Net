@@ -4,7 +4,8 @@ open System.IO
 open System.Net.Http
 open Argu
 open Swag4Net.Core
-open Swag4Net.Core.DocumentModel
+open Swag4Net.Core.v2
+open Swag4Net.Core.SpecificationModel
 open Swag4Net.Generators.RoslynGenerator
 open CsharpGenerator
 open CodeGeneration
@@ -52,27 +53,27 @@ let main argv =
     
     let http = new HttpClient()
     
-    let loadReference : Parser.ResourceProvider =
+    let loadReference : SwaggerParser.ResourceProvider =
       fun ctx ->
         match ctx.Reference with
         | ExternalUrl(uri, a) ->
           async {
               let! content = uri |> http.GetStringAsync |> Async.AwaitTask
-              let v = content |> Parser.loadDocument
+              let v = content |> SwaggerParser.loadDocument
               let name =
                 match a with
-                | Some (Anchor l) -> Parser.resolveRefName l
+                | Some (Anchor l) -> SwaggerParser.resolveRefName l
                 | _ -> uri.Segments |> Seq.last
               return Ok { Name=name; Content=v }
           }
          | RelativePath(p, a) ->
           async {
               let content = File.ReadAllText p
-              let v = content |> Parser.loadDocument
+              let v = content |> SwaggerParser.loadDocument
               let name =
                 match a with
-                | Some (Anchor l) -> Parser.resolveRefName l
-                | _ -> Parser.resolveRefName p
+                | Some (Anchor l) -> SwaggerParser.resolveRefName l
+                | _ -> SwaggerParser.resolveRefName p
               return Ok { Name=name; Content=v }
           }
          | InnerReference (Anchor a) -> 
@@ -83,12 +84,12 @@ let main argv =
                 match token with
                 | None -> Error "path not found"
                 | Some v -> 
-                    let name = Parser.resolveRefName a
+                    let name = SwaggerParser.resolveRefName a
                     Ok { Name=name; Content=v }
           }
 
 
-    let swagger = specFile |> getRawSpec |> Parser.parseSwagger loadReference
+    let swagger = specFile |> getRawSpec |> SwaggerParser.parseSwagger loadReference
   
     let settings =
       { Namespace=ns }

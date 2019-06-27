@@ -1,9 +1,19 @@
 namespace Swag4Net.Core
 
+open System
 open System.Net
 
 module SpecificationModel =
+
+  type Anchor = Anchor of string
+ 
+  type ReferencePath =
+      | ExternalUrl of Uri * Anchor option
+      | RelativePath of string * Anchor option
+      | InnerReference of Anchor
+
   type TypeName = string
+
   type Documentation =
     { Infos:Infos
       Host:string
