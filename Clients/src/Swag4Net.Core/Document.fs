@@ -6,14 +6,31 @@ open System.IO
 module Document =
   
   type Name = string
+  type DocPath = string
   
   type SProperty = Name * Value
   
   and Value =
-    | RawValue of obj
-    | SObject of SProperty list
-    | SCollection of Value list
+    | Litteral of DocPath * obj
+    | XObject of DocPath * SProperty list
+    | Collection of DocPath * Value list
   
+  let (|SObject|_|) =
+    function
+    | XObject(_, props) -> Some props
+    | _ -> None
+  
+  let (|SCollection|_|) =
+    function
+    | Collection(_, items) -> Some items
+    | _ -> None
+
+  let (|RawValue|_|) =
+    function
+    | Litteral(_, v) -> Some v
+    | _ -> None
+
+
   type Document =
     { Content:SProperty list }
   
@@ -104,53 +121,77 @@ module Document =
     | Some p -> properties p
     | None -> []
 
+  let private (+>) path name =
+    if String.IsNullOrWhiteSpace path
+    then name
+    else sprintf "%s.%s" path name
+
   open Newtonsoft.Json.Linq
 
   let fromJson (json:string) =
-    let rec parseProperties (o:JObject) =
-      let rec toValue (token:JToken) =
+    let rec parseProperties path (o:JObject) =
+      let rec toValue path (token:JToken) =
           match token with
-          | :? JValue as v -> RawValue v.Value
-          | :? JObject as c -> parseProperties c
+          | :? JValue as v -> Litteral (path,v.Value)
+          | :? JObject as c -> 
+              parseProperties path c
           | :? JArray as a -> 
-              a |> Seq.map toValue |> Seq.toList |> SCollection
-          | _ -> token.ToString() |> box |> RawValue
+              let items = 
+                a 
+                |> Seq.mapi (
+                    fun i item -> 
+                      let np = sprintf "%s[%d]" path i
+                      toValue np item
+                   )
+                |> Seq.toList
+              Collection(path, items)
+          | _ -> 
+              let v = token.ToString() |> box
+              Litteral (path,v)
       
-      o.Properties()
-        |> Seq.map (
-            fun (p:JProperty) ->
-              let n = p.Name
-              let v = p.Value |> toValue
-              n,v
-           ) |> Seq.toList |> SObject
-    json |> JObject.Parse |> parseProperties
+      let props =
+        o.Properties()
+          |> Seq.map (
+              fun (p:JProperty) ->
+                let n = p.Name
+                let v = p.Value |> toValue (path +> n)
+                n,v
+             ) |> Seq.toList
+      XObject(path, props)
+    json |> JObject.Parse |> parseProperties ""
 
   open YamlDotNet.RepresentationModel
 
   let fromYaml (content:string) =
-    let rec analyze (node:YamlNode) = 
+    let rec analyze path (node:YamlNode) = 
       match node with
       | :? YamlMappingNode as o -> 
-          o.Children
-          |> Seq.map (
-                fun p -> 
-                  let name = p.Key.ToString()
-                  let value = analyze p.Value
-                  name, value
-              )
-          |> Seq.toList
-          |> SObject
+          let props = 
+            o.Children
+            |> Seq.map (
+                  fun p -> 
+                    let name = p.Key.ToString()
+                    let np = path +> name
+                    let value = analyze np p.Value
+                    name, value
+                )
+            |> Seq.toList
+          XObject(path, props)
       | :? YamlSequenceNode as s -> 
           s.Children
-          |> Seq.map analyze
+          |> Seq.mapi (
+              fun i item -> 
+                let np = sprintf "%s[%d]" path i
+                analyze np item
+              )
           |> Seq.toList
-          |> SCollection
+          |> fun r -> Collection(path, r)
       | :? YamlScalarNode as s ->
-          RawValue s.Value
+          Litteral(path, s.Value)
       | _ -> failwithf "node of type %A not supported" (node.GetType().Name)
     let yaml = YamlStream()
     use reader = new StringReader(content)
     yaml.Load(reader)
     let doc = yaml.Documents |> Seq.head
-    analyze doc.RootNode
+    analyze "" doc.RootNode
     
