@@ -5,9 +5,10 @@ open System.Net.Http
 open Argu
 open Swag4Net.Core
 open Swag4Net.Core.v2
-open Swag4Net.Core.SpecificationModel
+open Swag4Net.Core.Domain
+open SharedKernel
+open SwaggerSpecification
 open Swag4Net.Generators.RoslynGenerator
-open CsharpGenerator
 
 let (/>) a b =
   Path.Combine(a, b)
@@ -87,26 +88,33 @@ let main argv =
                     Ok { Name=name; Content=v }
           }
 
+    match specFile |> getRawSpec |> Parser.parse with
+    | Ok doc ->  
+        let settings =
+          { Namespace=ns }
+    
+        let client,dtos = 
+          match doc with
+          | Parser.Swagger spec ->
+              SwaggerClientGenerator.generateClients settings spec clientName,
+              SwaggerClientGenerator.generateDtos settings spec.Definitions
+          | Parser.OpenApi spec ->
+              failwith "not implemented"
+        
+        outputFolder |> Directory.CreateDirectory |> ignore
+    
+        let csFilePath = outputFolder /> "Dtos.cs"
+        File.WriteAllText(csFilePath, dtos)
+    
+        let csFilePath = outputFolder /> "Client.cs"
+        File.WriteAllText(csFilePath, client)
+        0
 
-    let swagger = specFile |> getRawSpec |> SwaggerParser.parseSwagger loadReference
-  
-    let settings =
-      { Namespace=ns }
-    
-    let client = generateClients settings swagger clientName
-    
-    let dtos =
-      generateDtos settings swagger.Definitions
-    
-    outputFolder |> Directory.CreateDirectory |> ignore
-    
-    let csFilePath = outputFolder /> "Dtos.cs"
-    File.WriteAllText(csFilePath, dtos)
-    
-    let csFilePath = outputFolder /> "Client.cs"
-    File.WriteAllText(csFilePath, client)
+    | Error error -> 
+        printfn "%s" error
+        -1
 
   with e ->
       printfn "%s" e.Message
+      -1
 
-  0 // return an integer exit code

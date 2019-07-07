@@ -2,8 +2,9 @@
 
 open System
 open Swag4Net.Core
-open SpecificationModel
-open Swag4Net.Core.v3.SpecificationDocument
+open Swag4Net.Core.Domain
+open SharedKernel
+open OpenApiSpecification
 open Parsing
 open Document
 

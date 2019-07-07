@@ -4,14 +4,35 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
 open Swag4Net.Core
-open SpecificationModel
+open Swag4Net.Core.Domain
+open SharedKernel
+open SwaggerSpecification
 open RoslynDsl
 
-//[<RequireQualifiedAccess>]
-module CsharpGenerator =
+[<RequireQualifiedAccess>]
+module SwaggerClientGenerator =
 
-  type GenerationSettings =
-    { Namespace:string }
+  let getClrType (prop:Property) = 
+    let rec getTypeName (t:DataTypeDescription<Schema>) =
+        match t with
+        | PrimaryType dataType -> 
+            match dataType with
+            | DataType.String (Some StringFormat.Date) -> "DateTime"
+            | DataType.String (Some StringFormat.DateTime) -> "DateTime"
+            | DataType.String (Some StringFormat.Base64Encoded) -> "string" //TODO: create a base64 string type
+            | DataType.String (Some StringFormat.Binary) -> "byte[]"
+            | DataType.String (Some StringFormat.Password) -> "string"
+            | DataType.String _ -> "string"
+            | DataType.Number -> "float"
+            | DataType.Integer -> "int"
+            | DataType.Integer64 -> "long"
+            | DataType.Boolean -> "bool"
+            | DataType.Array (Inlined s) -> s |> getTypeName |> sprintf "IEnumerable<%s>"
+            | DataType.Array (Referenced _) -> "object"
+            | DataType.Object -> "object"
+        | ComplexType s -> s.Name
+        | _ -> raise (System.NotImplementedException "Cannot resolve CLR type for now")
+    prop.Type |> getTypeName |> SyntaxFactory.ParseTypeName
 
   let jsonPropertyAttribute(propName:string) = 
     let name = parseName "JsonProperty"
@@ -28,20 +49,19 @@ module CsharpGenerator =
     |> withBody []
     |> withBaseConstructorInitializer [ argument (identifierName varName) ]
 
-  let rec rawTypeIdentifier =
+  let rec rawTypeIdentifier : DataTypeDescription<Schema> -> string =
     function
-    | Inlined(PrimaryType dataType) -> 
+    | PrimaryType dataType -> 
         match dataType with
         | DataType.String _ -> "string"
         | DataType.Number -> "float"
         | DataType.Integer -> "int"
         | DataType.Integer64 -> "long"
         | DataType.Boolean -> "bool"
-        | DataType.Array propType -> 
-            propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
+        | DataType.Array (Inlined propType) -> propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
+        | DataType.Array (Referenced _) -> "object"
         | DataType.Object -> "object"
-    | Inlined(ComplexType s) -> s.Name
-    | Referenced _ -> raise (System.NotImplementedException "Cannot resolve raw type identifier for now")
+    | ComplexType s -> s.Name
 
   let isSuccess =
     function
@@ -116,21 +136,18 @@ module CsharpGenerator =
         (d :> StatementSyntax) :: dicValues
       else []
 
-    let callQueryParam (p:Parameter) =
-      let name = p.Name
-      let varName = identifierName p.Name
-      match p.ParamType with
-      | Inlined param ->
-          let methodName = if param.IsArray() then "AddQueryParameters" else "AddQueryParameter"       
-          SyntaxFactory.ExpressionStatement(
-            memberAccess "base" methodName
-              |> invokeMember [
-                    argument (identifierName "request")
-                    literalExpression SyntaxKind.StringLiteralExpression (SyntaxFactory.Literal name) |> SyntaxFactory.Argument
-                    argument varName
-                  ]
-            )
-      | Referenced _ -> failwith "TODO"
+    let callQueryParam (param:Parameter) =
+      let name = param.Name
+      let varName = identifierName param.Name
+      let methodName = if param.ParamType.IsArray() then "AddQueryParameters" else "AddQueryParameter"       
+      SyntaxFactory.ExpressionStatement(
+        memberAccess "base" methodName
+          |> invokeMember [
+                argument (identifierName "request")
+                literalExpression SyntaxKind.StringLiteralExpression (SyntaxFactory.Literal name) |> SyntaxFactory.Argument
+                argument varName
+              ]
+        )
 
     let callParamMethodName methodName (p:Parameter) =
       let name = p.Name

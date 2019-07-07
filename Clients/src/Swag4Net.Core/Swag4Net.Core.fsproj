@@ -4,11 +4,12 @@
     <RootNamespace>Swag4Net.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="SpecificationModel.fs" />
+    <Compile Include="Domain\SharedKernel.fs" />
+    <Compile Include="Domain\SwaggerSpecification.fs" />
+    <Compile Include="Domain\OpenApiSpecification.fs" />
     <Compile Include="Document.fs" />
     <Compile Include="v2\SwaggerParser.fs" />
     <Compile Include="Parsing.fs" />
-    <Compile Include="v3\SpecificationDocument.fs" />
     <Compile Include="v3\Parser.fs" />
     <EmbeddedResource Include="v3\openapi-jsonschema.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>

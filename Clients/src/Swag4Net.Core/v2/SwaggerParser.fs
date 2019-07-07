@@ -5,7 +5,9 @@ module SwaggerParser =
   open System
   open Swag4Net.Core
   open Document
-  open SpecificationModel
+  open Swag4Net.Core.Domain
+  open SharedKernel
+  open SwaggerSpecification
   
   type ResourceProvider = ResourceProviderContext -> Result<ReferenceContent, string> Async
   and ResourceProviderContext = 
@@ -56,7 +58,7 @@ module SwaggerParser =
   let private parseParameterLocation' (v:Value option) =
     v |> Option.map parseParameterLocation
 
-  type DataTypeProvider = Value -> Result<DataTypeDescription InlinedOrReferenced,string>
+  type DataTypeProvider = Value -> Result<DataTypeDescription<Schema>,string>
 
   let private parseSchema (parseDataType:DataTypeProvider) (d:Value) name =
     match d |> selectToken "properties" with
@@ -93,7 +95,7 @@ module SwaggerParser =
   let resolveRefName (path:string) =
     path.Split '/' |> Seq.last
 
-  let rec parseDataType (spec:Value) provider (o:Value) : Result<DataTypeDescription InlinedOrReferenced,string> =
+  let rec parseDataType (spec:Value) provider (o:Value) : Result<DataTypeDescription<Schema>,string> =
 
     let (|Ref|_|) (token:Value) =
       match token |> readString "$ref" with
@@ -111,19 +113,19 @@ module SwaggerParser =
       | _ -> None
 
     match o with
-    | IsType "integer" & IsFormat "int32" -> DataType.Integer |> PrimaryType |> Inlined |> Ok
-    | IsType "integer" & IsFormat "int64" -> DataType.Integer64 |> PrimaryType |> Inlined |> Ok
-    | IsType "string" & IsFormat "date-time" -> DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Inlined |> Ok
-    | IsType "string" & IsFormat "date" -> DataType.String (Some StringFormat.Date) |> PrimaryType |> Inlined |> Ok
-    | IsType "string" & IsFormat "password" -> DataType.String (Some StringFormat.Password) |> PrimaryType |> Inlined |> Ok
-    | IsType "string" & IsFormat "byte" -> DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Inlined |> Ok
-    | IsType "string" & IsFormat "binary" -> DataType.String (Some StringFormat.Binary) |> PrimaryType |> Inlined |> Ok
-    | IsType "string" -> DataType.String None |> PrimaryType |> Inlined |> Ok
-    | IsType "boolean" -> DataType.Boolean |> PrimaryType |> Inlined |> Ok
+    | IsType "integer" & IsFormat "int32" -> DataType.Integer |> PrimaryType |> Ok
+    | IsType "integer" & IsFormat "int64" -> DataType.Integer64 |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "date-time" -> DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "date" -> DataType.String (Some StringFormat.Date) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "password" -> DataType.String (Some StringFormat.Password) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "byte" -> DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Ok
+    | IsType "string" & IsFormat "binary" -> DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
+    | IsType "string" -> DataType.String None |> PrimaryType |> Ok
+    | IsType "boolean" -> DataType.Boolean |> PrimaryType |> Ok
     | IsType "array" -> 
         match o |> selectToken "items" with
         | None -> Error "Could not resolve array items"
-        | Some v -> v |> parseDataType spec provider |> Result.map (DataType.Array >> PrimaryType >> Inlined)
+        | Some v -> v |> parseDataType spec provider |> Result.map (fun o -> DataType<Schema>.Array (Inlined o) |> PrimaryType)
     | Ref ref -> 
         let r = 
           ref 
@@ -132,7 +134,7 @@ module SwaggerParser =
         match r with
         | Ok c ->
             let provider = parseDataType spec provider
-            parseSchema provider c.Content c.Name |> Result.map (ComplexType >> Inlined)
+            parseSchema provider c.Content c.Name |> Result.map ComplexType
         | Error e -> Error e
     | a -> Error "Could not resolve data type"
 

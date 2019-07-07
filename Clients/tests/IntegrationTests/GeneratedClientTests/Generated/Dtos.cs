@@ -35,13 +35,6 @@ namespace GeneratedClientTests.Generated
             get;
             set;
         }
-
-        [JsonProperty("manufacturer")]
-        public Manufacturer Manufacturer
-        {
-            get;
-            set;
-        }
     }
 
     public class CarOffer
@@ -60,13 +53,6 @@ namespace GeneratedClientTests.Generated
             set;
         }
 
-        [JsonProperty("model")]
-        public CarModel Model
-        {
-            get;
-            set;
-        }
-
         [JsonProperty("productionDate")]
         public DateTime ProductionDate
         {
@@ -79,20 +65,6 @@ namespace GeneratedClientTests.Generated
     {
         [JsonProperty("id")]
         public string Id
-        {
-            get;
-            set;
-        }
-
-        [JsonProperty("from")]
-        public User From
-        {
-            get;
-            set;
-        }
-
-        [JsonProperty("to")]
-        public User To
         {
             get;
             set;

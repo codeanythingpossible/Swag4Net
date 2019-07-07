@@ -4,33 +4,11 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
 open Swag4Net.Core
-open SpecificationModel
 
 let parseName = SyntaxFactory.ParseName
 let identifierName (n:string) = SyntaxFactory.IdentifierName n
 let usingDirective = parseName >> SyntaxFactory.UsingDirective
 let parseTypeName = SyntaxFactory.ParseTypeName
-
-let getClrType (prop:Property) = 
-  let rec getTypeName =
-    function
-      | Inlined (PrimaryType dataType) -> 
-          match dataType with
-          | DataType.String (Some StringFormat.Date) -> "DateTime"
-          | DataType.String (Some StringFormat.DateTime) -> "DateTime"
-          | DataType.String (Some StringFormat.Base64Encoded) -> "string" //TODO: create a base64 string type
-          | DataType.String (Some StringFormat.Binary) -> "byte[]"
-          | DataType.String (Some StringFormat.Password) -> "string"
-          | DataType.String _ -> "string"
-          | DataType.Number -> "float"
-          | DataType.Integer -> "int"
-          | DataType.Integer64 -> "long"
-          | DataType.Boolean -> "bool"
-          | DataType.Array s -> s |> getTypeName |> sprintf "IEnumerable<%s>"
-          | DataType.Object -> "object"
-      | Inlined(ComplexType s) -> s.Name
-      | _ -> raise (System.NotImplementedException "Cannot resolve CLR type for now")
-  prop.Type |> getTypeName |> SyntaxFactory.ParseTypeName
 
 let ucFirst(text:string) =
   if System.String.IsNullOrWhiteSpace(text) || text.Length < 2

@@ -1,9 +1,9 @@
-namespace Swag4Net.Core.v3
+namespace Swag4Net.Core.Domain
 
 open Swag4Net.Core
-open SpecificationModel
+open SharedKernel
 
-module SpecificationDocument =
+module OpenApiSpecification =
 
   type TypeName = string
   type HttpStatusCode = string
