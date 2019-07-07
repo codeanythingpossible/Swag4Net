@@ -11,6 +11,42 @@ open Swag4Net.Core.v2.SwaggerParser
 module Parser =
     open System
 
+    module OpenApiMappers =
+      open Swag4Net.Core.v3.SpecificationDocument
+      
+      let mapOperation verb path (op:Operation option) =
+        async {
+          match op with
+          | Some o ->
+            
+              //o.RequestBody
+              //|> Option.map (
+              //    function
+              //    | Inlined b ->
+              //        b.Content
+              //   )
+              //for body in o.RequestBody do
+                
+
+              //o.Parameters
+
+              return 
+                Some
+                  { Path=path
+                    Verb=verb
+                    Tags= o.Tags |> Option.defaultValue []
+                    Summary=o.Summary |> Option.defaultValue ""
+                    Description=o.Description |> Option.defaultValue ""
+                    OperationId=o.OperationId
+                    Consumes=[]
+                    Produces=[]
+                    Parameters=[]
+                    Responses=[] }
+          | None -> return None
+        }
+
+    open OpenApiMappers
+
     let parseOpenApi (content:string) : Documentation = 
       let doc =  content |> loadDocument
       match Swag4Net.Core.v3.Parser.parseOpenApiDocument doc with
@@ -27,12 +63,27 @@ module Parser =
                 Contact = contact
                 License = spec.Infos.License |> Option.map (fun l -> { Name = l.Name; Url = l.Url |> Option.defaultValue "" } )
               }
+            let routes =
+              spec.Paths
+              |> Seq.collect(
+                    fun kv ->
+                      [ mapOperation "Get" kv.Key kv.Value.Get
+                        mapOperation "Delete" kv.Key kv.Value.Delete
+                        mapOperation "Options" kv.Key kv.Value.Options
+                        mapOperation "Post" kv.Key kv.Value.Post
+                        mapOperation "Put" kv.Key kv.Value.Put
+                        mapOperation "Head" kv.Key kv.Value.Head
+                        mapOperation "Patch" kv.Key kv.Value.Patch
+                        mapOperation "Trace" kv.Key kv.Value.Trace ]
+                  )
+              |> Seq.choose id
+              |> Seq.toList
             
             { Infos = infos
               Host = ""
               BasePath = ""
               Schemes = []
-              Routes = []
+              Routes = routes
               ExternalDocs = Map []
               Definitions = [] }
     

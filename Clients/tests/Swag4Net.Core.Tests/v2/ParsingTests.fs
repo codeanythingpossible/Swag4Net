@@ -122,7 +122,7 @@ module ParsingTests =
             Expect.sequenceEqual route.Responses [{ Code=StatusCode HttpStatusCode.MethodNotAllowed; Description="Invalid input"; Type=None }] "responses should be equal"
         
             Expect.sequenceEqual route.Parameters
-              [ { Location=InBody
+              [ { Location=InBody List.empty
                   Name="body"
                   Description="Pet object that needs to be added to the store"
                   Deprecated=false

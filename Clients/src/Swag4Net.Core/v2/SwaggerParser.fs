@@ -45,7 +45,7 @@ module SwaggerParser =
 
   let private parseParameterLocation (v:Value) =
     match v with
-    | IsRawValue "body" -> Ok InBody
+    | IsRawValue "body" -> Ok (InBody List.empty)
     | IsRawValue "cookie" -> Ok InCookie
     | IsRawValue "header" -> Ok InHeader
     | IsRawValue "path" -> Ok InPath

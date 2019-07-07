@@ -189,7 +189,7 @@ module CsharpGenerator =
             match p.Location with
             | InQuery -> Some (callQueryParam p :> StatementSyntax)
             | InPath -> Some (callPathParam p :> StatementSyntax)
-            | InBody -> Some (callBodyParam p :> StatementSyntax)
+            | InBody _ -> Some (callBodyParam p :> StatementSyntax)
             | InCookie -> Some (callCookieParam p :> StatementSyntax)
             | InHeader -> Some (callHeaderParam p :> StatementSyntax)
             | InFormData -> Some (callFormDataParam p :> StatementSyntax)

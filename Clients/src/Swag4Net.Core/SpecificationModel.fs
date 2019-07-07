@@ -6,6 +6,7 @@ open System.Net
 module SpecificationModel =
 
   type Anchor = Anchor of string
+  type MimeType = string
  
   type ReferencePath =
       | ExternalUrl of Uri * Anchor option
@@ -102,7 +103,7 @@ module SpecificationModel =
     | InHeader
     | InPath
     | InCookie
-    | InBody
+    | InBody  of MimeType list
     | InFormData
   and Parameter =
     { Location:ParameterLocation
