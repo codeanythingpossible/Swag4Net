@@ -127,18 +127,20 @@ module ParsingTests =
                   Description="Pet object that needs to be added to the store"
                   Deprecated=false
                   AllowEmptyValue=false
-                  ParamType=ComplexType 
-                    { Name="Pet"
-                      Properties=
-                      [
-                        { Name = "id"
-                          Type = PrimaryType DataType.Integer64
-                          Enums = None;
+                  ParamType=
+                    Inlined <|
+                      ComplexType 
+                        { Name="Pet"
+                          Properties=
+                          [
+                            { Name = "id"
+                              Type = Inlined <| PrimaryType DataType.Integer64
+                              Enums = None;
+                            }
+                            { Name = "name"
+                              Type = Inlined <| PrimaryType (DataType.String None)
+                              Enums = None } ]
                         }
-                        { Name = "name"
-                          Type = PrimaryType (DataType.String None)
-                          Enums = None } ]
-                    }
                   Required=true } ]
               "parameters should be equal"
           }
@@ -163,7 +165,7 @@ module ParsingTests =
                           Description="ID of pet to return"
                           Deprecated=false
                           AllowEmptyValue=false
-                          ParamType=PrimaryType DataType.Integer
+                          ParamType=Inlined <| PrimaryType DataType.Integer
                           Required=true })
                 "parameters should be equal"
             }
@@ -185,7 +187,7 @@ module ParsingTests =
                           Description="ID of pet to return"
                           Deprecated=false
                           AllowEmptyValue=false
-                          ParamType=PrimaryType DataType.Integer64
+                          ParamType=Inlined <| PrimaryType DataType.Integer64
                           Required=true })
                 "parameters should be equal"
             }
@@ -194,70 +196,70 @@ module ParsingTests =
               let actual =
                 """{ "type": "integer", "format": "int64" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType DataType.Integer64)) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType DataType.Integer64)) "data type should be equal"
             }
         
             test "Parsing int32 data type" {
               let actual =
                 """{ "type": "integer", "format": "int32" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType DataType.Integer)) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType DataType.Integer)) "data type should be equal"
             }
         
             test "Parsing boolean data type" {
               let actual =
                 """{ "type": "boolean" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType DataType.Boolean)) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType DataType.Boolean)) "data type should be equal"
             }    
         
             test "Parsing string data type" {
               let actual =
                 """{ "type": "string" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok (PrimaryType (DataType.String None))) "data type should be equal"
+              Expect.equal actual (Ok (Inlined <| PrimaryType (DataType.String None))) "data type should be equal"
             }
         
             test "Parsing string data type with invalid format should fallback to simple string" {
               let actual =
                 """{ "type": "string", "format": "lalala" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType (DataType.String None))) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType (DataType.String None))) "data type should be equal"
             }
               
             test "Parsing string data type with date format" {
               let actual =
                 """{ "type": "string", "format": "date" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Date)))) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType (DataType.String (Some StringFormat.Date)))) "data type should be equal"
             }
   
             test "Parsing string data type with datetime format" {
               let actual =
                 """{ "type": "string", "format": "date-time" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.DateTime)))) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType (DataType.String (Some StringFormat.DateTime)))) "data type should be equal"
             }
   
             test "Parsing string data type with password format" {
               let actual =
                 """{ "type": "string", "format": "password" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Password)))) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType (DataType.String (Some StringFormat.Password)))) "data type should be equal"
             }
         
             test "Parsing string data type with binary format" {
               let actual =
                 """{ "type": "string", "format": "binary" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Binary)))) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType (DataType.String (Some StringFormat.Binary)))) "data type should be equal"
             }
         
             test "Parsing string data type with byte format" {
               let actual =
                 """{ "type": "string", "format": "byte" }"""
                 |> Document.fromJson |> SwaggerParser.parseDataType spec loadReference
-              Expect.equal actual (Ok(PrimaryType (DataType.String (Some StringFormat.Base64Encoded)))) "data type should be equal"
+              Expect.equal actual (Ok(Inlined <| PrimaryType (DataType.String (Some StringFormat.Base64Encoded)))) "data type should be equal"
             }
         
           ]
@@ -283,50 +285,58 @@ module ParsingTests =
                   {
                     Code=StatusCode HttpStatusCode.OK
                     Description="successful operation"
-                    Type= Some(ComplexType
+                    Type = 
+                      Some(
+                        Inlined <| 
+                          ComplexType
                                     { Name = "Pet";
                                       Properties =
                                        [
                                          { Name = "id"
-                                           Type = PrimaryType DataType.Integer64
+                                           Type = Inlined <| PrimaryType DataType.Integer64
                                            Enums = None
                                          }
                                          { Name = "category"
                                            Type =
-                                             ComplexType
-                                                {  Name = "Category"
-                                                   Properties = 
-                                                     [ { Name = "id"
-                                                         Type = PrimaryType DataType.Integer64
-                                                         Enums = None }
-                                                       { Name = "name"
-                                                         Type = PrimaryType (DataType.String None)
-                                                         Enums = None }]
-                                                }
+                                             Inlined <| 
+                                               ComplexType
+                                                  {  Name = "Category"
+                                                     Properties = 
+                                                       [ { Name = "id"
+                                                           Type = Inlined <| PrimaryType DataType.Integer64
+                                                           Enums = None }
+                                                         { Name = "name"
+                                                           Type = Inlined <| PrimaryType (DataType.String None)
+                                                           Enums = None }]
+                                                  }
                                            Enums = None }
                                          { Name = "name"
-                                           Type = PrimaryType (DataType.String None)
+                                           Type = Inlined <| PrimaryType (DataType.String None)
                                            Enums = None }
                                          { Name = "photoUrls"
-                                           Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                                           Type = Inlined <| PrimaryType (DataType.Array (Inlined <| PrimaryType (DataType.String None)))
                                            Enums = None }
                                          { Name = "tags"
-                                           Type = PrimaryType
+                                           Type =
+                                            Inlined <| 
+                                              PrimaryType
                                                    ( DataType.Array
-                                                       ( ComplexType
-                                                          { Name = "Tag"
-                                                            Properties =
-                                                              [ { Name = "id"
-                                                                  Type = PrimaryType DataType.Integer64
-                                                                  Enums = None }
-                                                                { Name = "name"
-                                                                  Type = PrimaryType (DataType.String None)
-                                                                  Enums = None } ]
-                                                          } ) )
+                                                       (Inlined <|
+                                                          ComplexType
+                                                            { Name = "Tag"
+                                                              Properties =
+                                                                [ { Name = "id"
+                                                                    Type = Inlined <| PrimaryType DataType.Integer64
+                                                                    Enums = None }
+                                                                  { Name = "name"
+                                                                    Type = Inlined <| PrimaryType (DataType.String None)
+                                                                    Enums = None } ]
+                                                            } )
+                                                    )
                                            Enums = None
                                          }
                                          { Name = "status"
-                                           Type = PrimaryType (DataType.String None)
+                                           Type = Inlined <| PrimaryType (DataType.String None)
                                            Enums = Some ["available"; "pending"; "sold"]
                                          }
                                        ]
@@ -364,9 +374,9 @@ module ParsingTests =
             Expect.equal actual
                 (Ok { Name="ApiResponse"
                       Properties=
-                        [ { Name = "code"; Type = PrimaryType DataType.Integer; Enums=None }
-                          { Name = "type"; Type = PrimaryType (DataType.String None); Enums=None }
-                          { Name = "message"; Type = PrimaryType (DataType.String None); Enums=None } ]
+                        [ { Name = "code"; Type = Inlined <| PrimaryType DataType.Integer; Enums=None }
+                          { Name = "type"; Type = Inlined <| PrimaryType (DataType.String None); Enums=None }
+                          { Name = "message"; Type = Inlined <| PrimaryType (DataType.String None); Enums=None } ]
                     })
               "definition should be equal"
           }
@@ -433,46 +443,48 @@ module ParsingTests =
                 { Name = "Pet"
                   Properties =
                    [{ Name = "id"
-                      Type = PrimaryType DataType.Integer64
+                      Type = Inlined <| PrimaryType DataType.Integer64
                       Enums = None
                     } 
                     { Name = "category"
                       Type =
-                       ComplexType
-                         { Name = "Category"
-                           Properties = [ { Name = "id"
-                                            Type = PrimaryType DataType.Integer64
-                                            Enums = None }
-                                          { Name = "name"
-                                            Type = PrimaryType (DataType.String None)
-                                            Enums = None } ]
-                         }
+                        Inlined <| 
+                         ComplexType
+                           { Name = "Category"
+                             Properties = [ { Name = "id"
+                                              Type = Inlined <| PrimaryType DataType.Integer64
+                                              Enums = None }
+                                            { Name = "name"
+                                              Type = Inlined <| PrimaryType (DataType.String None)
+                                              Enums = None } ]
+                           }
                       Enums = None }
                     { Name = "name"
-                      Type = PrimaryType (DataType.String None)
+                      Type = Inlined <| PrimaryType (DataType.String None)
                       Enums = None }
                     { Name = "photoUrls"
-                      Type = PrimaryType (DataType.Array (PrimaryType (DataType.String None)))
+                      Type = Inlined <| PrimaryType (DataType.Array (Inlined <| PrimaryType (DataType.String None)))
                       Enums = None }
                     { Name = "tags"
                       Type =
+                        Inlined <| 
                         PrimaryType
                           (DataType.Array
-                             (ComplexType
+                             (Inlined <| ComplexType
                                 { Name = "Tag"
                                   Properties = [
                                    { Name = "id"
-                                     Type = PrimaryType DataType.Integer64
+                                     Type = Inlined <| PrimaryType DataType.Integer64
                                      Enums = None }
                                    { Name = "name"
-                                     Type = PrimaryType (DataType.String None)
+                                     Type = Inlined <| PrimaryType (DataType.String None)
                                      Enums = None
                                    } ]
                                 }))
                       Enums = None
                     }
                     { Name = "status"
-                      Type = PrimaryType (DataType.String None)
+                      Type = Inlined <| PrimaryType (DataType.String None)
                       Enums = Some ["available"; "pending"; "sold"]
                     }]
                   })

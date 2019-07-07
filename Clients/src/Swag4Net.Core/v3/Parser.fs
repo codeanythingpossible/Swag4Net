@@ -1,8 +1,9 @@
 ﻿module Swag4Net.Core.v3.Parser
 
 open System
-open Swag4Net.Core.v3.SpecificationDocument
 open Swag4Net.Core
+open SpecificationModel
+open Swag4Net.Core.v3.SpecificationDocument
 open Parsing
 open Document
 
@@ -136,10 +137,11 @@ let parseInlinedOrReferenced f node : ParsingState<'T InlinedOrReferenced> =
     let! r =
         match node with
         | SObject ["$ref", RawValue link] ->
-            Referenced (string link)
-            |> ParsingState.success
+            match link |> string |> ReferencePath.parseReference with
+            | Ok r -> ParsingState.success (Referenced r)
+            | Error e -> ParsingState.FailureOf  <| InvalidFormat e
         | SObject _ as v -> 
-            v |> f |> ParsingState.map (fun s -> Inlined s)
+            v |> f |> ParsingState.map Inlined
         | _ -> ParsingState.FailureOf <| InvalidFormat "Could not determine if value is $ref or object"
     return r
   }
@@ -147,11 +149,15 @@ let parseInlinedOrReferenced f node : ParsingState<'T InlinedOrReferenced> =
 let parseOptionalInlinedOrReferenced f node  : ParsingState<'T InlinedOrReferenced option> =
   match node with
   | Some (SObject ["$ref", RawValue link]) ->
-      if link |> isNull
-      then None
-      else Some (Referenced (string link))
-      |> ParsingState.success
-  | Some v -> v |> f |> ParsingState.map (fun r -> Some (Inlined r))
+      let result =
+        if link |> isNull
+        then None
+        else
+          match link |> string |> ReferencePath.parseReference with
+          | Ok r -> Some (Referenced r)
+          | Error _ -> None
+      ParsingState.success result
+  | Some v -> v |> f |> ParsingState.map (Inlined >> Some)
   | _ -> None |> ParsingState.success
 
 let rec parseSchema node =
@@ -287,11 +293,17 @@ let parseSchemaRef node : ParsingState<Schema InlinedOrReferenced option> =
     return r
   }
 
+let parseReference s : ParsingState<ReferencePath> =
+  match ReferencePath.parseReference s with
+  | Ok f -> ParsingState.success <| f
+  | Error e -> ParsingState.FailureOf <| InvalidFormat e
+
 let parseParameter node : ParsingState<Parameter InlinedOrReferenced> =
   parsing {
     match node |> selectToken "$ref" with
     | Some (RawValue s) ->
-        return Referenced (s.ToString())
+        let! r = s.ToString() |> parseReference |> ParsingState.map Referenced
+        return r
     | _ ->
         let! name = node |> readString "name"
         let! ``in`` = node |> readString "in"

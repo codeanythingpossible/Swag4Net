@@ -9,12 +9,33 @@ open Document
 open Swag4Net.Core.v2.SwaggerParser
 
 module Parser =
+    open System
 
     let parseOpenApi (content:string) : Documentation = 
       let doc =  content |> loadDocument
-      let spec = Swag4Net.Core.v3.Parser.parseOpenApiDocument doc
-      failwith "not implemented"
-
+      match Swag4Net.Core.v3.Parser.parseOpenApiDocument doc with
+      | Error e -> failwithf "%A" e
+      | Ok spec ->
+            let contact =
+                spec.Infos.Contact |> Option.bind (fun c -> c.Email |> Option.map Email)
+            
+            let infos =
+              { Description = spec.Infos.Description |> Option.defaultValue ""
+                Version = spec.Infos.Version
+                Title = spec.Infos.Title
+                TermsOfService = spec.Infos.TermsOfService |> Option.defaultValue ""
+                Contact = contact
+                License = spec.Infos.License |> Option.map (fun l -> { Name = l.Name; Url = l.Url |> Option.defaultValue "" } )
+              }
+            
+            { Infos = infos
+              Host = ""
+              BasePath = ""
+              Schemes = []
+              Routes = []
+              ExternalDocs = Map []
+              Definitions = [] }
+    
     let private byStandard (callback:string -> Result<'T,string>) (content:string) =
         let doc =  content |> loadDocument
         let openapi = doc |> Parsing.readStringOption "openapi"

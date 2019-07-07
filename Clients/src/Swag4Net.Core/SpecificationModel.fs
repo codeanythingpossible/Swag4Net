@@ -11,7 +11,29 @@ module SpecificationModel =
       | ExternalUrl of Uri * Anchor option
       | RelativePath of string * Anchor option
       | InnerReference of Anchor
+  [<RequireQualifiedAccess>]
+  module ReferencePath = 
+    let parseReference (ref:string) : Result<ReferencePath, string> =
+      match ref with
+      | _ when String.IsNullOrWhiteSpace ref ->
+          Error "ref cannot be empty"
+      | _ when ref.StartsWith "#" ->
+          ref.Substring 1 |> Anchor |> InnerReference |> Ok
+      | _ when Uri.IsWellFormedUriString(ref, UriKind.Absolute) ->
+          let uri = Uri ref
+          let a = if String.IsNullOrWhiteSpace uri.Fragment then None else Some(Anchor uri.Fragment)
+          ExternalUrl(Uri uri.AbsoluteUri, a) |> Ok
+      | _ -> 
+          match ref.IndexOf '#' with
+          | -1 -> RelativePath(ref, None) |> Ok
+          | i -> 
+            let a = ref.Substring i
+            RelativePath(ref, Some (Anchor a)) |> Ok
 
+  type InlinedOrReferenced<'a> =
+     | Inlined of 'a
+     | Referenced of ReferencePath
+  
   type TypeName = string
 
   type Documentation =
@@ -37,7 +59,7 @@ module SpecificationModel =
     { Name:string
       Properties:Property list }
   and Property = 
-    { Name:string; Type:DataTypeDescription; Enums:string list option }
+    { Name:string; Type:DataTypeDescription InlinedOrReferenced; Enums:string list option }
 
   and DataTypeDescription = 
     | PrimaryType of DataType
@@ -56,7 +78,7 @@ module SpecificationModel =
     | Integer
     | Integer64
     | Boolean
-    | Array of DataTypeDescription
+    | Array of DataTypeDescription InlinedOrReferenced
     | Object
   and [<RequireQualifiedAccess>] StringFormat =
     | Date
@@ -88,12 +110,12 @@ module SpecificationModel =
       Description:string
       Deprecated:bool
       AllowEmptyValue:bool
-      ParamType:DataTypeDescription
+      ParamType:DataTypeDescription InlinedOrReferenced
       Required:bool }
   and Response = 
     { Code:StatusCodeInfo
       Description:string
-      Type:DataTypeDescription option }
+      Type:DataTypeDescription InlinedOrReferenced option }
   and StatusCodeInfo =
     | AnyStatusCode
     | StatusCode of HttpStatusCode

@@ -43,23 +43,6 @@ module SwaggerParser =
         | _ -> None
     | _ -> None
 
-  let private parseReference (ref:string) : Result<ReferencePath, string> =
-    match ref with
-    | _ when String.IsNullOrWhiteSpace ref ->
-        Error "ref cannot be empty"
-    | _ when ref.StartsWith "#" ->
-        ref.Substring 1 |> Anchor |> InnerReference |> Ok
-    | _ when Uri.IsWellFormedUriString(ref, UriKind.Absolute) ->
-        let uri = Uri ref
-        let a = if String.IsNullOrWhiteSpace uri.Fragment then None else Some(Anchor uri.Fragment)
-        ExternalUrl(Uri uri.AbsoluteUri, a) |> Ok
-    | _ -> 
-        match ref.IndexOf '#' with
-        | -1 -> RelativePath(ref, None) |> Ok
-        | i -> 
-          let a = ref.Substring i
-          RelativePath(ref, Some (Anchor a)) |> Ok
-
   let private parseParameterLocation (v:Value) =
     match v with
     | IsRawValue "body" -> Ok InBody
@@ -73,7 +56,7 @@ module SwaggerParser =
   let private parseParameterLocation' (v:Value option) =
     v |> Option.map parseParameterLocation
 
-  type DataTypeProvider = Value -> Result<DataTypeDescription,string>
+  type DataTypeProvider = Value -> Result<DataTypeDescription InlinedOrReferenced,string>
 
   let private parseSchema (parseDataType:DataTypeProvider) (d:Value) name =
     match d |> selectToken "properties" with
@@ -110,12 +93,12 @@ module SwaggerParser =
   let resolveRefName (path:string) =
     path.Split '/' |> Seq.last
 
-  let rec parseDataType (spec:Value) provider (o:Value) =
+  let rec parseDataType (spec:Value) provider (o:Value) : Result<DataTypeDescription InlinedOrReferenced,string> =
 
     let (|Ref|_|) (token:Value) =
       match token |> readString "$ref" with
       | r when System.String.IsNullOrWhiteSpace r -> None
-      | r -> r |> parseReference |> Some
+      | r -> r |> ReferencePath.parseReference |> Some
 
     let (|IsType|_|) name (token:Value) =
       match token |> readString "type" with
@@ -128,19 +111,19 @@ module SwaggerParser =
       | _ -> None
 
     match o with
-    | IsType "integer" & IsFormat "int32" -> DataType.Integer |> PrimaryType |> Ok
-    | IsType "integer" & IsFormat "int64" -> DataType.Integer64 |> PrimaryType |> Ok
-    | IsType "string" & IsFormat "date-time" -> DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Ok
-    | IsType "string" & IsFormat "date" -> DataType.String (Some StringFormat.Date) |> PrimaryType |> Ok
-    | IsType "string" & IsFormat "password" -> DataType.String (Some StringFormat.Password) |> PrimaryType |> Ok
-    | IsType "string" & IsFormat "byte" -> DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Ok
-    | IsType "string" & IsFormat "binary" -> DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
-    | IsType "string" -> DataType.String None |> PrimaryType |> Ok
-    | IsType "boolean" -> DataType.Boolean |> PrimaryType |> Ok
+    | IsType "integer" & IsFormat "int32" -> DataType.Integer |> PrimaryType |> Inlined |> Ok
+    | IsType "integer" & IsFormat "int64" -> DataType.Integer64 |> PrimaryType |> Inlined |> Ok
+    | IsType "string" & IsFormat "date-time" -> DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Inlined |> Ok
+    | IsType "string" & IsFormat "date" -> DataType.String (Some StringFormat.Date) |> PrimaryType |> Inlined |> Ok
+    | IsType "string" & IsFormat "password" -> DataType.String (Some StringFormat.Password) |> PrimaryType |> Inlined |> Ok
+    | IsType "string" & IsFormat "byte" -> DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Inlined |> Ok
+    | IsType "string" & IsFormat "binary" -> DataType.String (Some StringFormat.Binary) |> PrimaryType |> Inlined |> Ok
+    | IsType "string" -> DataType.String None |> PrimaryType |> Inlined |> Ok
+    | IsType "boolean" -> DataType.Boolean |> PrimaryType |> Inlined |> Ok
     | IsType "array" -> 
         match o |> selectToken "items" with
         | None -> Error "Could not resolve array items"
-        | Some v -> v |> parseDataType spec provider |> Result.map (DataType.Array >> PrimaryType)
+        | Some v -> v |> parseDataType spec provider |> Result.map (DataType.Array >> PrimaryType >> Inlined)
     | Ref ref -> 
         let r = 
           ref 
@@ -149,7 +132,7 @@ module SwaggerParser =
         match r with
         | Ok c ->
             let provider = parseDataType spec provider
-            parseSchema provider c.Content c.Name |> Result.map ComplexType
+            parseSchema provider c.Content c.Name |> Result.map (ComplexType >> Inlined)
         | Error e -> Error e
     | a -> Error "Could not resolve data type"
 
@@ -259,7 +242,7 @@ module SwaggerParser =
     | SObject props ->
         props
           |> Seq.choose (
-              fun (n,c) ->
+              fun (_,c) ->
                 let typ =
                   match c |> selectToken "schema" with
                   | None -> parseDataType spec http c

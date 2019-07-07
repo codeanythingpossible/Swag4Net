@@ -1,13 +1,13 @@
 namespace Swag4Net.Core.v3
 
+open Swag4Net.Core
+open SpecificationModel
+
 module SpecificationDocument =
 
   type TypeName = string
   type HttpStatusCode = string
-  type InlinedOrReferenced<'a> =
-     | Inlined of 'a
-     | Referenced of Reference
-  and Reference = string
+ 
   type RegularExpression = string
   type Any = string
   type Url = string

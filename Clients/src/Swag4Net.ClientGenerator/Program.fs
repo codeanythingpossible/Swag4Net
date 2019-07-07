@@ -8,7 +8,6 @@ open Swag4Net.Core.v2
 open Swag4Net.Core.SpecificationModel
 open Swag4Net.Generators.RoslynGenerator
 open CsharpGenerator
-open CodeGeneration
 
 let (/>) a b =
   Path.Combine(a, b)
