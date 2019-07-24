@@ -45,50 +45,50 @@ namespace GeneratedClientTests.Generated
         {
         }
 
-        public Task<Result> Brands(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<IEnumerable<Manufacturer>>> Brands(CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Cars/brands");
-            return this.Execute(request, cancellationToken);
+            return this.Execute<IEnumerable<Manufacturer>>(request, cancellationToken);
         }
 
-        public Task<Result> GetBrand(string id, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<Manufacturer>> GetBrand(string id, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Cars/brand/{id}");
             base.AddPathParameter(request, "id", id);
-            return this.Execute(request, cancellationToken);
+            return this.Execute<Manufacturer>(request, cancellationToken);
         }
 
-        public Task<Result> GetBrandModels(string id, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<IEnumerable<CarModel>>> GetBrandModels(string id, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Cars/brand/{id}/models");
             base.AddPathParameter(request, "id", id);
-            return this.Execute(request, cancellationToken);
+            return this.Execute<IEnumerable<CarModel>>(request, cancellationToken);
         }
 
-        public Task<Result> GetBrandModel(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<CarModel>> GetBrandModel(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Cars/brand/{brandId}/models/{modelId}");
             base.AddPathParameter(request, "brandId", brandId);
             base.AddPathParameter(request, "modelId", modelId);
-            return this.Execute(request, cancellationToken);
+            return this.Execute<CarModel>(request, cancellationToken);
         }
 
-        public Task<Result> GetOffers(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<IEnumerable<CarOffer>>> GetOffers(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Cars/brand/{brandId}/models/{modelId}/offers");
             base.AddPathParameter(request, "brandId", brandId);
             base.AddPathParameter(request, "modelId", modelId);
-            return this.Execute(request, cancellationToken);
+            return this.Execute<IEnumerable<CarOffer>>(request, cancellationToken);
         }
     }
 
     public interface ICarsApiClient
     {
-        Task<Result> Brands(CancellationToken cancellationToken = default(CancellationToken));
-        Task<Result> GetBrand(string id, CancellationToken cancellationToken = default(CancellationToken));
-        Task<Result> GetBrandModels(string id, CancellationToken cancellationToken = default(CancellationToken));
-        Task<Result> GetBrandModel(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken));
-        Task<Result> GetOffers(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<IEnumerable<Manufacturer>>> Brands(CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<Manufacturer>> GetBrand(string id, CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<IEnumerable<CarModel>>> GetBrandModels(string id, CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<CarModel>> GetBrandModel(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<IEnumerable<CarOffer>>> GetOffers(string brandId, string modelId, CancellationToken cancellationToken = default(CancellationToken));
     }
 
     public class MessagesApiClient : RestApiClientBase, IMessagesApiClient
@@ -105,24 +105,25 @@ namespace GeneratedClientTests.Generated
         {
         }
 
-        public Task<Result> Read(string id, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<Message>> Read(string id, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Messages/{id}");
             base.AddPathParameter(request, "id", id);
-            return this.Execute(request, cancellationToken);
+            return this.Execute<Message>(request, cancellationToken);
         }
 
-        public Task<Result> Send(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result> Send(SendMessageRequest messageRequest, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/Messages/Send");
+            base.AddBodyParameter(request, "messageRequest", messageRequest);
             return this.Execute(request, cancellationToken);
         }
     }
 
     public interface IMessagesApiClient
     {
-        Task<Result> Read(string id, CancellationToken cancellationToken = default(CancellationToken));
-        Task<Result> Send(CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<Message>> Read(string id, CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result> Send(SendMessageRequest messageRequest, CancellationToken cancellationToken = default(CancellationToken));
     }
 
     public class StrangeApiClient : RestApiClientBase, IStrangeApiClient
@@ -139,21 +140,21 @@ namespace GeneratedClientTests.Generated
         {
         }
 
-        public Task<Result<DiscriminatedUnion<string, Nothing>>> Get(int id, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result<DiscriminatedUnion<string, Nothing, StrangeDto1>>> Get(int id, CancellationToken cancellationToken = default(CancellationToken))
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/api/Strange/{id}");
             base.AddPathParameter(request, "id", id);
             var types = new Dictionary<int, Type>();
             types.Add(200, typeof(string));
             types.Add(204, typeof(Nothing));
-            types.Add(206, typeof(Nothing));
-            return this.ExecuteDiscriminated<DiscriminatedUnion<string,Nothing>>(request, types, cancellationToken);
+            types.Add(206, typeof(StrangeDto1));
+            return this.ExecuteDiscriminated<DiscriminatedUnion<string,Nothing,StrangeDto1>>(request, types, cancellationToken);
         }
     }
 
     public interface IStrangeApiClient
     {
-        Task<Result<DiscriminatedUnion<string, Nothing>>> Get(int id, CancellationToken cancellationToken = default(CancellationToken));
+        Task<Result<DiscriminatedUnion<string, Nothing, StrangeDto1>>> Get(int id, CancellationToken cancellationToken = default(CancellationToken));
     }
 
     public class ValuesApiClient : RestApiClientBase, IValuesApiClient

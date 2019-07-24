@@ -88,7 +88,7 @@ let main argv =
                     Ok { Name=name; Content=v }
           }
 
-    match specFile |> getRawSpec |> Parser.parse with
+    match specFile |> getRawSpec |> Parser.parse loadReference with
     | Ok doc ->  
         let settings =
           { Namespace=ns }
