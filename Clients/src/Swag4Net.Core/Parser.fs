@@ -43,7 +43,6 @@ module Parser =
               //let provider = fun _ -> async { return Error "not implemented" }
               Ok (OpenApi <| parseOpenApi content)
           | "swagger" ->
-              //let provider = fun _ -> async { return Ok content }
               Ok (Swagger<| parseSwagger provider content)
           | _ -> Error "unhandled standard"
       byStandard selectParser content

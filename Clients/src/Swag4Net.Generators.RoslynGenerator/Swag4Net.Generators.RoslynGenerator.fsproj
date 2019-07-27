@@ -9,6 +9,7 @@
         <Compile Include="RoslynDsl.fs" />
         <Compile Include="Settings.fs" />
         <Compile Include="SwaggerClientGenerator.fs" />
+        <Compile Include="OpenApiV3ClientGenerator.fs" />
     </ItemGroup>
 
   <ItemGroup>
