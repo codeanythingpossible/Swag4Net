@@ -53,7 +53,7 @@ let main argv =
     
     let http = new HttpClient()
     
-    let loadReference : SwaggerParser.ResourceProvider =
+    let loadSwaggerReference : SwaggerParser.ResourceProvider =
       fun ctx ->
         match ctx.Reference with
         | ExternalUrl(uri, a) ->
@@ -88,7 +88,9 @@ let main argv =
                     Ok { Name=name; Content=v }
           }
 
-    match specFile |> getRawSpec |> Parser.parse loadReference with
+    let logger = printfn "- %s"
+
+    match specFile |> getRawSpec |> Parser.parse loadSwaggerReference with
     | Ok doc ->  
         let settings =
           { Namespace=ns }
@@ -99,7 +101,8 @@ let main argv =
               SwaggerClientGenerator.generateClients settings spec clientName,
               SwaggerClientGenerator.generateDtos settings spec.Definitions
           | Parser.OpenApi spec ->
-              failwith "not implemented"
+              "",
+              OpenApiV3ClientGenerator.generateDtos logger settings spec
         
         outputFolder |> Directory.CreateDirectory |> ignore
     

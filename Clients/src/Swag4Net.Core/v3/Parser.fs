@@ -167,7 +167,7 @@ let rec parseSchema node =
         match node with
         | XObject _ as o ->
             parsing {
-              let typ = o |> readStringOption "type" |> Option.defaultValue "object"
+              let typ = o |> readStringOption "type" |> Option.defaultValue ""
 
               let! properties =
                 parsing {

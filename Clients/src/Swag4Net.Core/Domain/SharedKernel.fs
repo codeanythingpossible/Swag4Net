@@ -1,11 +1,15 @@
 ﻿namespace Swag4Net.Core.Domain
 
 open System
-open System.Net
 
 module SharedKernel =
 
   type Anchor = Anchor of string
+  [<RequireQualifiedAccess>]
+  module Anchor = 
+    let split (Anchor a) =
+      a.Split([|'/';'\\'|], StringSplitOptions.RemoveEmptyEntries) |> Array.toList
+
   type MimeType = string
  
   type ReferencePath =

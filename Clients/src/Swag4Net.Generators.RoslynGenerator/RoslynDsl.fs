@@ -62,6 +62,10 @@ let declareVariableWithValue name value =
                     SyntaxFactory.Identifier name).WithInitializer(
                     SyntaxFactory.EqualsValueClause value))))
 
+let declareClass (name:string) m =
+  SyntaxFactory.ClassDeclaration(name).AddModifiers(SyntaxFactory.Token m)
+
+
 let argument exp =
   SyntaxFactory.Argument(exp)
 

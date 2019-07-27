@@ -166,6 +166,9 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Pet"
+      properties:
+        message:
+          type: string
     Error:
       required:
         - code
