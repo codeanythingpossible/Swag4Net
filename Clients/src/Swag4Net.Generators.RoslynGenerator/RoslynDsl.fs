@@ -10,11 +10,18 @@ let identifierName (n:string) = SyntaxFactory.IdentifierName n
 let usingDirective = parseName >> SyntaxFactory.UsingDirective
 let parseTypeName = SyntaxFactory.ParseTypeName
 
-let ucFirst(text:string) =
+let ucFirst (text:string) =
   if System.String.IsNullOrWhiteSpace(text) || text.Length < 2
   then text
   else
     sprintf "%s%s" (text.Substring(0, 1).ToUpperInvariant()) (text.Substring(1))
+
+let cleanTypeName (name:string) =
+  let nums = [|0 .. 9|] |> Array.map(fun i -> i.ToString().[0])
+  name
+    .Replace('-', '_')
+    .Replace('.', '_')
+    .TrimStart(nums) |> ucFirst
 
 let constructor (name:string) =
   SyntaxFactory.ConstructorDeclaration name
@@ -28,6 +35,21 @@ let withParameters (parameters:ParameterSyntax list) (c:ConstructorDeclarationSy
         parameters
         |> List.fold (fun (l:ParameterListSyntax) p -> l.AddParameters p) (SyntaxFactory.ParameterList())
   c.WithParameterList(paramList)
+
+let jsonPropertyAttribute(propName:string) = 
+  let name = parseName "JsonProperty"
+  let arguments = SyntaxFactory.ParseAttributeArgumentList("(\"" + propName + "\")")
+  let attribute = SyntaxFactory.Attribute(name, arguments)
+  let attributeList = (new SeparatedSyntaxList<AttributeSyntax>()).Add(attribute)
+  SyntaxFactory.AttributeList(attributeList)
+
+let autoProperty clrType name =
+  SyntaxFactory.PropertyDeclaration(clrType, ucFirst name)
+    .AddModifiers(SyntaxFactory.Token SyntaxKind.PublicKeyword)
+    .AddAccessorListAccessors(
+        SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token SyntaxKind.SemicolonToken),
+        SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token SyntaxKind.SemicolonToken)
+    ).AddAttributeLists(jsonPropertyAttribute name)
 
 let parameter varName typeName =
   SyntaxFactory.Parameter(SyntaxFactory.Identifier varName).WithType(parseTypeName typeName)

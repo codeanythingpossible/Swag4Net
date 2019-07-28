@@ -48,7 +48,7 @@ module OpenApiV3ClientGenerator =
         | "string", Some "password" -> return DataType.String (Some StringFormat.Password) |> PrimaryType |> Ok
         | "string", Some "byte" -> return DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Ok
         | "string", Some "binary" -> return DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
-        | "string", None -> return DataType.String None |> PrimaryType |> Ok
+        | "string", _ -> return DataType.String None |> PrimaryType |> Ok
         | "boolean", _ -> return DataType.Boolean |> PrimaryType |> Ok
         | "object", _ -> return DataType.Object |> PrimaryType |> Ok
         | "array",_ -> 
@@ -105,13 +105,6 @@ module OpenApiV3ClientGenerator =
         | ComplexType s -> s.Type
     source |> getTypeName |> SyntaxFactory.ParseTypeName
 
-  let jsonPropertyAttribute(propName:string) = 
-    let name = parseName "JsonProperty"
-    let arguments = SyntaxFactory.ParseAttributeArgumentList("(\"" + propName + "\")")
-    let attribute = SyntaxFactory.Attribute(name, arguments)
-    let attributeList = (new SeparatedSyntaxList<AttributeSyntax>()).Add(attribute)
-    SyntaxFactory.AttributeList(attributeList)
-
   let generateBasicDto logError doc (name:string) (schema:Schema) =
     async {
       let props =
@@ -128,20 +121,20 @@ module OpenApiV3ClientGenerator =
               let! typ = toDataTypeDescription doc v
               match typ with
               | Ok typ ->
-                  let clr = getClrType typ
-                  let propertyDeclaration = 
-                    SyntaxFactory.PropertyDeclaration(clr, ucFirst name)
-                        .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                        .AddAccessorListAccessors(
-                            SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
-                            SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-                        ).AddAttributeLists(jsonPropertyAttribute name)
-                  yield propertyDeclaration :> MemberDeclarationSyntax
+                  let clrType = getClrType typ
+                  yield autoProperty clrType name :> MemberDeclarationSyntax
+                    //SyntaxFactory.PropertyDeclaration(clr, ucFirst name)
+                    //    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+                    //    .AddAccessorListAccessors(
+                    //        SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                    //        SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+                    //    ).AddAttributeLists(jsonPropertyAttribute name)
+                  //yield propertyDeclaration :> MemberDeclarationSyntax
               | Error e -> logError e
             | Error e -> logError e
         } |> AsyncSeq.toArray
 
-      let code = publicClass name members
+      let code = publicClass (cleanTypeName name) members
 
       match schema.Type, schema.Items with
       | "array", Some items ->
@@ -149,7 +142,7 @@ module OpenApiV3ClientGenerator =
           match items with
           | Error e -> return Error e
           | Ok (name,_) ->
-              let clr = SyntaxFactory.ParseTypeName name
+              let clr = SyntaxFactory.ParseTypeName (if System.String.IsNullOrWhiteSpace name then "object" else name)
               let enumerable = SyntaxFactory.GenericName(SyntaxFactory.Identifier "IEnumerable")
               return Ok (code.AddBaseListTypes(SyntaxFactory.SimpleBaseType (enumerable.AddTypeArgumentListArguments clr)))
       | _ ->
@@ -171,7 +164,7 @@ module OpenApiV3ClientGenerator =
                 match dto with
                 | Error e -> logError e
                 | Ok c ->
-                    if c.Identifier.ValueText = "object"
+                    if c.Identifier.ValueText.Equals("object", System.StringComparison.InvariantCultureIgnoreCase)
                     then yield c.WithIdentifier (SyntaxFactory.Identifier (sprintf "%sChoice%d" name i))
                     else yield c
         } |> AsyncSeq.toArrayAsync
@@ -189,14 +182,46 @@ module OpenApiV3ClientGenerator =
       return Ok (c, types)
     }
 
-  let generateClasses logError doc (schemas:Map<string, Schema InlinedOrReferenced>) =
+  let generateAnyOf logError doc (name:string) (schemas:Schema InlinedOrReferenced list) =
+    async {
+      let code = publicClass name Array.empty
+      
+      let! props = 
+        asyncSeq {
+          for i in 0 .. schemas.Length-1 do
+            let! schema = schemas.Item i |> getSchema doc
+            match schema with
+            | Error e -> logError e
+            | Ok (n,schema) ->
+                let! dto = generateBasicDto logError doc n schema
+                match dto with
+                | Error e -> logError e
+                | Ok c ->
+                    if c.Identifier.ValueText.Equals("object", System.StringComparison.InvariantCultureIgnoreCase)
+                    then yield n,c.WithIdentifier (SyntaxFactory.Identifier (sprintf "%sChoice%d" name i))
+                    else yield n,c
+        } |> AsyncSeq.toArrayAsync
+        
+      let properties =
+        seq {
+          for (name, p) in props |> Seq.distinctBy fst do
+            let clrType = SyntaxFactory.ParseTypeName p.Identifier.ValueText
+            yield autoProperty clrType name :> MemberDeclarationSyntax
+        } |> Seq.toArray
+
+      let c = code.AddMembers properties
+
+      return Ok (c, props |> Array.map snd)
+    }
+
+  let generateClasses logError doc (schemas:(string* Schema InlinedOrReferenced) seq) =
     asyncSeq {
-      for k,schema in schemas |> Map.toSeq do
+      for k,schema in schemas do
         match schema with
         | Inlined schema ->
 
-            match schema.OneOf with
-            | Some oneOf -> 
+            match schema.OneOf, schema.AnyOf with
+            | Some oneOf, _ -> 
                 let! r = generateOneOf logError doc k oneOf
                 match r with
                 | Error e -> logError e
@@ -204,7 +229,15 @@ module OpenApiV3ClientGenerator =
                     yield t
                     for t in ts do
                       yield t
-            | None -> 
+            | _, Some anyOf -> 
+              let! r = generateAnyOf logError doc k anyOf
+              match r with
+              | Error e -> logError e
+              | Ok (t,ts) ->
+                  yield t
+                  for t in ts do
+                    yield t
+            | None, None -> 
                 let! r = generateBasicDto logError doc k schema
                 match r with
                 | Error e -> logError e
@@ -212,7 +245,6 @@ module OpenApiV3ClientGenerator =
 
         | Referenced s ->
             failwith "not yiet implemented"
-        ()
     }
 
   let generateDtos logError (settings:GenerationSettings) (doc:Documentation) : string =
@@ -221,12 +253,38 @@ module OpenApiV3ClientGenerator =
         doc.Components
         |> Option.bind (fun c -> c.Schemas)
         |> Option.defaultValue Map.empty
+        |> Map.toSeq
         |> generateClasses logError doc
         |> AsyncSeq.toArray
+
+      //let routesDtos = 
+      //  doc.Paths
+      //  |> Seq.choose (fun p -> p.Value.Patch |> Option.map (fun o -> o.Responses))
+      //  |> Seq.collect (fun rs -> rs.Responses)
+      //  |> Seq.map (fun kv -> kv.Value)
+      //  |> Seq.choose (function | Inlined r -> Some r | _ -> None)
+      //  |> Seq.choose (fun rs -> rs.Content)
+      //  |> Seq.collect (fun v -> v |> Map.toArray |> Array.map snd)
+      //  |> Seq.map (fun v -> "object", v.Schema)
+      //  |> generateClasses logError doc
+      //  |> AsyncSeq.toArray
+
+      let routesDtos = 
+        doc.Paths
+        |> Seq.choose (fun p -> p.Value.Patch |> Option.bind (fun o -> o.RequestBody))
+        |> Seq.choose (function | Inlined r -> Some r | _ -> None)
+        |> Seq.map (fun r -> r.Content)
+        |> Seq.collect (fun v -> v |> Map.toArray |> Array.map snd)
+        |> Seq.map (fun v -> "object", v.Schema)
+        |> generateClasses logError doc
+        |> AsyncSeq.toArray
+
+      let declaredClasses = 
+        Array.concat [classes; routesDtos]
         |> Array.distinctBy (fun c -> c.Identifier.ValueText)
         |> Array.map (fun c -> c :> MemberDeclarationSyntax)
 
-      let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(classes)
+      let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(declaredClasses)
       let syntaxFactory =
         SyntaxFactory.CompilationUnit()
         |> addUsings [
