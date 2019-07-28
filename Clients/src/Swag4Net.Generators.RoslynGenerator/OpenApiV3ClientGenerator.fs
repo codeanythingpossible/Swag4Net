@@ -112,73 +112,127 @@ module OpenApiV3ClientGenerator =
     let attributeList = (new SeparatedSyntaxList<AttributeSyntax>()).Add(attribute)
     SyntaxFactory.AttributeList(attributeList)
 
+  let generateBasicDto logError doc (name:string) (schema:Schema) =
+    async {
+      let props =
+        schema.Properties
+        |> Option.defaultValue Map.empty
+        |> Map.toSeq
+      
+      let members = 
+        asyncSeq {
+          for (name,ps) in props do
+            let! ps = ps |> getSchema doc
+            match ps with
+            | Ok (_,v) -> 
+              let! typ = toDataTypeDescription doc v
+              match typ with
+              | Ok typ ->
+                  let clr = getClrType typ
+                  let propertyDeclaration = 
+                    SyntaxFactory.PropertyDeclaration(clr, ucFirst name)
+                        .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+                        .AddAccessorListAccessors(
+                            SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                            SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+                        ).AddAttributeLists(jsonPropertyAttribute name)
+                  yield propertyDeclaration :> MemberDeclarationSyntax
+              | Error e -> logError e
+            | Error e -> logError e
+        } |> AsyncSeq.toArray
+
+      let code = publicClass name members
+
+      match schema.Type, schema.Items with
+      | "array", Some items ->
+          let! items = items |> getSchema doc
+          match items with
+          | Error e -> return Error e
+          | Ok (name,_) ->
+              let clr = SyntaxFactory.ParseTypeName name
+              let enumerable = SyntaxFactory.GenericName(SyntaxFactory.Identifier "IEnumerable")
+              return Ok (code.AddBaseListTypes(SyntaxFactory.SimpleBaseType (enumerable.AddTypeArgumentListArguments clr)))
+      | _ ->
+          return Ok code
+  }
+
+  let generateOneOf logError doc (name:string) (schemas:Schema InlinedOrReferenced list) =
+    async {
+      let code = publicClass name Array.empty
+      
+      let! types = 
+        asyncSeq {
+          for i in 0 .. schemas.Length-1 do
+            let! schema = schemas.Item i |> getSchema doc
+            match schema with
+            | Error e -> logError e
+            | Ok (n,schema) ->
+                let! dto = generateBasicDto logError doc n schema
+                match dto with
+                | Error e -> logError e
+                | Ok c ->
+                    if c.Identifier.ValueText = "object"
+                    then yield c.WithIdentifier (SyntaxFactory.Identifier (sprintf "%sChoice%d" name i))
+                    else yield c
+        } |> AsyncSeq.toArrayAsync
+      
+      let genericArgs = 
+        types |> Array.map (fun t -> SyntaxFactory.ParseTypeName t.Identifier.ValueText)
+        
+      let discriminatedUnion = 
+        SyntaxFactory
+          .GenericName(SyntaxFactory.Identifier "DiscriminatedUnion")
+          .AddTypeArgumentListArguments genericArgs
+      
+      let c = code.AddBaseListTypes(SyntaxFactory.SimpleBaseType discriminatedUnion)
+
+      return Ok (c, types)
+    }
+
   let generateClasses logError doc (schemas:Map<string, Schema InlinedOrReferenced>) =
     asyncSeq {
       for k,schema in schemas |> Map.toSeq do
         match schema with
         | Inlined schema ->
-            let props =
-              schema.Properties
-              |> Option.defaultValue Map.empty
-              |> Map.toSeq
-              
-            let members = 
-              asyncSeq {
-                for (name,ps) in props do
-                  let! ps = ps |> getSchema doc
-                  match ps with
-                  | Ok (_,v) -> 
-                    let! typ = toDataTypeDescription doc v
-                    match typ with
-                    | Ok typ ->
-                        let clr = getClrType typ
-                        let propertyDeclaration = 
-                          SyntaxFactory.PropertyDeclaration(clr, ucFirst name)
-                              .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                              .AddAccessorListAccessors(
-                                  SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
-                                  SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-                              ).AddAttributeLists(jsonPropertyAttribute name)
-                        yield propertyDeclaration :> MemberDeclarationSyntax
-                    | Error e -> logError e
-                  | Error e -> logError e
-              } |> AsyncSeq.toArray
 
-            let code = 
-              SyntaxFactory.ClassDeclaration(k)
-                .AddModifiers(SyntaxFactory.Token SyntaxKind.PublicKeyword)
-                .AddMembers(members)
-
-            match schema.Type, schema.Items with
-            | "array", Some items ->
-                let! items = items |> getSchema doc
-                match items with
+            match schema.OneOf with
+            | Some oneOf -> 
+                let! r = generateOneOf logError doc k oneOf
+                match r with
                 | Error e -> logError e
-                | Ok (name,_) ->
-                    let clr = SyntaxFactory.ParseTypeName name
-                    let enumerable = SyntaxFactory.GenericName(SyntaxFactory.Identifier "IEnumerable")
-                    yield code.AddBaseListTypes(SyntaxFactory.SimpleBaseType (enumerable.AddTypeArgumentListArguments clr)) :> MemberDeclarationSyntax
-            | _ ->
-                yield code :> MemberDeclarationSyntax
+                | Ok (t,ts) ->
+                    yield t
+                    for t in ts do
+                      yield t
+            | None -> 
+                let! r = generateBasicDto logError doc k schema
+                match r with
+                | Error e -> logError e
+                | Ok t -> yield t
+
         | Referenced s ->
             failwith "not yiet implemented"
         ()
     }
 
   let generateDtos logError (settings:GenerationSettings) (doc:Documentation) : string =
-    let classes = 
-      doc.Components
-      |> Option.bind (fun c -> c.Schemas)
-      |> Option.defaultValue Map.empty
-      |> generateClasses logError doc
-      |> AsyncSeq.toArray
+    async {
+      let classes = 
+        doc.Components
+        |> Option.bind (fun c -> c.Schemas)
+        |> Option.defaultValue Map.empty
+        |> generateClasses logError doc
+        |> AsyncSeq.toArray
+        |> Array.distinctBy (fun c -> c.Identifier.ValueText)
+        |> Array.map (fun c -> c :> MemberDeclarationSyntax)
 
-    let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(classes)
-    let syntaxFactory =
-      SyntaxFactory.CompilationUnit()
-      |> addUsings [
-          "System"
-          "Newtonsoft.Json" ]
-      |> addMembers ns
-    syntaxFactory.NormalizeWhitespace().ToFullString()
+      let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(classes)
+      let syntaxFactory =
+        SyntaxFactory.CompilationUnit()
+        |> addUsings [
+            "System"
+            "Newtonsoft.Json" ]
+        |> addMembers ns
+      return syntaxFactory.NormalizeWhitespace().ToFullString()
+    } |> Async.RunSynchronously
 
