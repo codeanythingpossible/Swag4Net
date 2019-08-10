@@ -9,6 +9,7 @@ open SharedKernel
 open OpenApiSpecification
 open RoslynDsl
 open FSharp.Control
+open System.Collections.Generic
 
 [<RequireQualifiedAccess>]
 module OpenApiV3ClientGenerator =
@@ -123,13 +124,6 @@ module OpenApiV3ClientGenerator =
               | Ok typ ->
                   let clrType = getClrType typ
                   yield autoProperty clrType name :> MemberDeclarationSyntax
-                    //SyntaxFactory.PropertyDeclaration(clr, ucFirst name)
-                    //    .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                    //    .AddAccessorListAccessors(
-                    //        SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
-                    //        SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-                    //    ).AddAttributeLists(jsonPropertyAttribute name)
-                  //yield propertyDeclaration :> MemberDeclarationSyntax
               | Error e -> logError e
             | Error e -> logError e
         } |> AsyncSeq.toArray
@@ -214,7 +208,7 @@ module OpenApiV3ClientGenerator =
       return Ok (c, props |> Array.map snd)
     }
 
-  let generateClasses logError doc (schemas:(string* Schema InlinedOrReferenced) seq) =
+  let generateClasses logError doc (schemaProvider:ResourceProvider<Documentation, Schema>) (schemas:(string* Schema InlinedOrReferenced) seq) =
     asyncSeq {
       for k,schema in schemas do
         match schema with
@@ -243,40 +237,88 @@ module OpenApiV3ClientGenerator =
                 | Error e -> logError e
                 | Ok t -> yield t
 
-        | Referenced s ->
-            failwith "not yiet implemented"
+        | Referenced ref ->
+            let! r = ResourceProviderContext.Create doc ref |> schemaProvider
+            match r with
+            | Error e -> logError e
+            | Ok content ->
+                let schema = 
+                  match content.Content.Title with 
+                  | Some n when n.Equals("object", System.StringComparison.OrdinalIgnoreCase) -> { content.Content with Title=(Some content.Name) }
+                  | None -> { content.Content with Title=(Some content.Name) }
+                  | Some _ -> content.Content
+
+                let! c = generateBasicDto logError doc k schema
+                match c with
+                | Error e -> logError e
+                | Ok t -> yield t
     }
 
-  let generateDtos logError (settings:GenerationSettings) (doc:Documentation) : string =
+  let generateDtos logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) : string =
     async {
       let classes = 
         doc.Components
         |> Option.bind (fun c -> c.Schemas)
         |> Option.defaultValue Map.empty
         |> Map.toSeq
-        |> generateClasses logError doc
+        |> generateClasses logError doc resourceProvider
         |> AsyncSeq.toArray
 
-      //let routesDtos = 
-      //  doc.Paths
-      //  |> Seq.choose (fun p -> p.Value.Patch |> Option.map (fun o -> o.Responses))
-      //  |> Seq.collect (fun rs -> rs.Responses)
-      //  |> Seq.map (fun kv -> kv.Value)
-      //  |> Seq.choose (function | Inlined r -> Some r | _ -> None)
-      //  |> Seq.choose (fun rs -> rs.Content)
-      //  |> Seq.collect (fun v -> v |> Map.toArray |> Array.map snd)
-      //  |> Seq.map (fun v -> "object", v.Schema)
-      //  |> generateClasses logError doc
-      //  |> AsyncSeq.toArray
+      let payload (f : KeyValuePair<string, Path> -> Operation option) =
+        let rq = 
+          doc.Paths
+          |> Seq.choose (fun p -> f p |> Option.bind (fun o -> o.RequestBody))
+          |> Seq.choose (
+               function
+               | Inlined r -> r.Content |> Map.toArray |> Array.map snd |> Some
+               | _ -> None
+             )
+          |> Seq.collect id
+          |> Seq.toList
+
+        let d =
+          doc.Paths
+          |> Seq.choose (fun p -> f p |> Option.bind (fun o -> o.Responses.Default))
+          |> Seq.choose (function | Inlined r -> Some r | _ -> None)
+          |> Seq.map (fun r -> r.Content |> Option.defaultValue Map.empty |> Map.toArray |> Array.map snd)
+          |> Seq.collect id
+          |> Seq.toList
+
+        rq @ d
+        
+      let payloads = 
+        [ payload (fun p -> p.Value.Delete)
+          payload (fun p -> p.Value.Get)
+          payload (fun p -> p.Value.Head)
+          payload (fun p -> p.Value.Options)
+          payload (fun p -> p.Value.Patch)
+          payload (fun p -> p.Value.Post)
+          payload (fun p -> p.Value.Put)
+          payload (fun p -> p.Value.Trace) ] |> Seq.collect id |> Seq.toList
 
       let routesDtos = 
-        doc.Paths
-        |> Seq.choose (fun p -> p.Value.Patch |> Option.bind (fun o -> o.RequestBody))
-        |> Seq.choose (function | Inlined r -> Some r | _ -> None)
-        |> Seq.map (fun r -> r.Content)
-        |> Seq.collect (fun v -> v |> Map.toArray |> Array.map snd)
-        |> Seq.map (fun v -> "object", v.Schema)
-        |> generateClasses logError doc
+        payloads
+        |> Seq.map (
+              fun v ->
+              match v.Schema with
+              | Referenced (InnerReference (Anchor a)) -> 
+                  let name = a.Split('/') |> Seq.last
+                  name, v.Schema
+              | Referenced(ExternalUrl (_, Some (Anchor a))) ->
+                  let name = a.Split('/') |> Seq.last
+                  name, v.Schema
+              | Referenced(ExternalUrl (uri, None)) ->
+                  let name = uri.Segments |> Seq.last
+                  name, v.Schema
+              | Referenced(RelativePath (_, Some (Anchor a))) ->
+                  let name = a.Split('/') |> Seq.last
+                  name, v.Schema
+              | Referenced(RelativePath (path, None)) ->
+                  let name = path.Split('/') |> Seq.last
+                  name, v.Schema
+              | _ -> "bite", v.Schema
+            )
+        |> generateClasses logError doc resourceProvider
         |> AsyncSeq.toArray
 
       let declaredClasses = 

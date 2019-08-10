@@ -4,10 +4,10 @@
     <RootNamespace>Swag4Net.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Document.fs" />
     <Compile Include="Domain\SharedKernel.fs" />
     <Compile Include="Domain\SwaggerSpecification.fs" />
     <Compile Include="Domain\OpenApiSpecification.fs" />
-    <Compile Include="Document.fs" />
     <Compile Include="v2\SwaggerParser.fs" />
     <Compile Include="Parsing.fs" />
     <Compile Include="v3\Parser.fs" />

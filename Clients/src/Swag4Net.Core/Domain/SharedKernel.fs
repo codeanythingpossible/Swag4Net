@@ -1,6 +1,7 @@
 ﻿namespace Swag4Net.Core.Domain
 
 open System
+open Swag4Net.Core.Document
 
 module SharedKernel =
 
@@ -67,3 +68,13 @@ module SharedKernel =
     | Base64Encoded
     | Binary
 
+  type ResourceProvider<'tin, 'tout> = ResourceProviderContext<'tin> -> Result<ReferenceContent<'tout>, string> Async
+  and ResourceProviderContext<'tin> = 
+    { Document:'tin
+      Reference:ReferencePath }
+    static member Create doc ref =
+      { Document=doc
+        Reference=ref }
+  and ReferenceContent<'tout> =
+    { Name:string
+      Content:'tout }

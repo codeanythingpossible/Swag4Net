@@ -1,5 +1,7 @@
 namespace Swag4Net.Code.Tests.v2
 
+open Swag4Net.Core.Document
+
 module ParsingTests =
     open System.IO
     open Swag4Net.Core
@@ -22,7 +24,7 @@ module ParsingTests =
       | Document.SObject props -> Document.XObject(".", props)
       | _ -> failtest "json has not expected structure"
 
-    let loadReference : SwaggerParser.ResourceProvider =
+    let loadReference : ResourceProvider<Value,Value> =
       fun ctx ->
         match ctx.Reference with
         | InnerReference (Anchor a) -> 

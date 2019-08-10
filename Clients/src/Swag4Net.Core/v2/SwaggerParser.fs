@@ -8,14 +8,6 @@ module SwaggerParser =
   open Swag4Net.Core.Domain
   open SharedKernel
   open SwaggerSpecification
-  
-  type ResourceProvider = ResourceProviderContext -> Result<ReferenceContent, string> Async
-  and ResourceProviderContext = 
-    { Document:Value
-      Reference:ReferencePath }
-  and ReferenceContent =
-    { Name:string
-      Content:Value }
 
   let private readString name (token:Value) =
     match token |> selectToken name with
@@ -31,7 +23,7 @@ module SwaggerParser =
         | _ -> false // TODO: check format
     | _ -> false // TODO: check format
 
-  let private readRefItem (provider:ResourceProvider) (doc:Value) rp =
+  let private readRefItem (provider:ResourceProvider<Value,Value>) (doc:Value) rp =
     match rp with
     | Ok p ->
         { Document=doc; Reference=p } |> provider
