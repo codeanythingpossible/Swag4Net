@@ -6,7 +6,7 @@ open SharedKernel
 module OpenApiSpecification =
 
   type TypeName = string
-  type HttpStatusCode = string
+  type HttpStatusCode = int
  
   type RegularExpression = string
   type Any = string
@@ -79,7 +79,7 @@ module OpenApiSpecification =
       }
   and Operation =
     {
-      Tags: string list option
+      Tags: string list
       Summary: string option
       Description: string option
       ExternalDocs: ExternalDocumentation option
@@ -94,7 +94,7 @@ module OpenApiSpecification =
   and Parameter =
     {
         Name: string
-        In: string
+        In: ParameterLocation
         Description: string option
         Required: bool
         Deprecated: bool

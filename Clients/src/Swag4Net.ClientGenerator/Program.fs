@@ -151,7 +151,7 @@ let main argv =
               SwaggerClientGenerator.generateClients settings spec clientName,
               SwaggerClientGenerator.generateDtos settings spec.Definitions
           | Parser.OpenApi spec ->
-              "",
+              OpenApiV3ClientGenerator.generateClients logger settings spec loadOpenApiSchema clientName,
               OpenApiV3ClientGenerator.generateDtos logger settings spec loadOpenApiSchema
         
         outputFolder |> Directory.CreateDirectory |> ignore

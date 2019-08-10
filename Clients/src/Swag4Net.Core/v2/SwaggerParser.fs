@@ -29,26 +29,8 @@ module SwaggerParser =
         { Document=doc; Reference=p } |> provider
     | Error e -> async { return Error e }
 
-  let private (|IsRawValue|_|) (v:'t) =
-    function
-    | RawValue o ->
-        match o with
-        | :? 't as rv when rv = v -> Some ()
-        | _ -> None
-    | _ -> None
-
-  let private parseParameterLocation (v:Value) =
-    match v with
-    | IsRawValue "body" -> Ok (InBody List.empty)
-    | IsRawValue "cookie" -> Ok InCookie
-    | IsRawValue "header" -> Ok InHeader
-    | IsRawValue "path" -> Ok InPath
-    | IsRawValue "query" -> Ok InQuery
-    | IsRawValue "formData" -> Ok InFormData
-    | s -> Error <| sprintf "Not supported parameter location '%A'" s
-
   let private parseParameterLocation' (v:Value option) =
-    v |> Option.map parseParameterLocation
+    v |> Option.map Helpers.readParameterLocation
 
   type DataTypeProvider = Value -> Result<DataTypeDescription<Schema>,string>
 

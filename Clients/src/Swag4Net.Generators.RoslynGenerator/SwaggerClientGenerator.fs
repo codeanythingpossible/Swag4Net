@@ -41,14 +41,6 @@ module SwaggerClientGenerator =
     let attributeList = (new SeparatedSyntaxList<AttributeSyntax>()).Add(attribute)
     SyntaxFactory.AttributeList(attributeList)
 
-  let callBaseConstructor varName typeName (clientName:string) =
-    
-    constructor clientName
-    |> withModifier SyntaxKind.PublicKeyword
-    |> withParameters [ parameter varName typeName ]
-    |> withBody []
-    |> withBaseConstructorInitializer [ argument (identifierName varName) ]
-
   let rec rawTypeIdentifier : DataTypeDescription<Schema> -> string =
     function
     | PrimaryType dataType -> 

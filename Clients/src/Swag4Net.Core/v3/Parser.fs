@@ -308,13 +308,14 @@ let parseParameter node : ParsingState<Parameter InlinedOrReferenced> =
     | _ ->
         let! name = node |> readString "name"
         let! ``in`` = node |> readString "in"
+        let! location = ``in`` |> Helpers.parseParameterLocation |> Result.mapError (fun e -> InvalidFormat e) |> ParsingState.ofResult
         let! schema = node |> parseSchemaRef
 
         return 
           Inlined
             {
               Name = name
-              In = ``in``
+              In = location
               Description = node |> readStringOption "description"
               Required = node |> readBoolWithDefault "required" true
               Deprecated = node |> readBool "required"
@@ -394,7 +395,7 @@ let parseResponses node =
 
         let responses =
           responsesDefinitions
-          |> List.choose (fun (code,r) -> r |> Option.map (fun v -> code,v) )
+          |> List.choose (fun (code,r) -> r |> Option.map (fun v -> int code,v) )
           |> Map
 
         return 
@@ -438,7 +439,7 @@ let operation template verb node =
       template,
       verb,
         {
-          Tags = node |> selectToken "tags" |> Option.bind (fun tags -> readStringArray tags)
+          Tags = node |> selectToken "tags" |> Option.bind (fun tags -> readStringArray tags) |> Option.defaultValue List.empty
           Summary = summary
           Description = description
           ExternalDocs = externalDocs

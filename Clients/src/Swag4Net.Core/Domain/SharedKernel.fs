@@ -78,3 +78,44 @@ module SharedKernel =
   and ReferenceContent<'tout> =
     { Name:string
       Content:'tout }
+
+  type ParameterLocation =
+    | InQuery
+    | InHeader
+    | InPath
+    | InCookie
+    | InBody of MimeType list
+    | InFormData
+
+module Helpers =
+
+  open SharedKernel
+
+  let (|IsRawValue|_|) (v:'t) =
+    function
+    | RawValue o ->
+        match o with
+        | :? 't as rv when rv = v -> Some ()
+        | _ -> None
+    | _ -> None
+
+  let readParameterLocation (v:Value) =
+    match v with
+    | IsRawValue "body" -> Ok (InBody List.empty)
+    | IsRawValue "cookie" -> Ok InCookie
+    | IsRawValue "header" -> Ok InHeader
+    | IsRawValue "path" -> Ok InPath
+    | IsRawValue "query" -> Ok InQuery
+    | IsRawValue "formData" -> Ok InFormData
+    | s -> Error <| sprintf "Not supported parameter location '%A'" s
+
+  let parseParameterLocation (v:string) =
+    match v.ToLower() with
+    | "body" -> Ok (InBody List.empty)
+    | "cookie" -> Ok InCookie
+    | "header" -> Ok InHeader
+    | "path" -> Ok InPath
+    | "query" -> Ok InQuery
+    | "formData" -> Ok InFormData
+    | s -> Error <| sprintf "Not supported parameter location '%A'" s
+

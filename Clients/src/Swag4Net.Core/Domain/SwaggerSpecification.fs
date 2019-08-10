@@ -42,13 +42,7 @@ module SwaggerSpecification =
       Produces:string list
       Parameters:Parameter list
       Responses:Response list }
-  and ParameterLocation =
-    | InQuery
-    | InHeader
-    | InPath
-    | InCookie
-    | InBody  of MimeType list
-    | InFormData
+
   and Parameter =
     { Location:ParameterLocation
       Name:string

@@ -134,5 +134,10 @@ let inline addMembers (m:#MemberDeclarationSyntax) (unit:CompilationUnitSyntax) 
 let addArg a (args:SeparatedSyntaxList<ArgumentSyntax>) =
   args.Add(a)
 
-
+let callBaseConstructor varName typeName (clientName:string) =
+  constructor clientName
+  |> withModifier SyntaxKind.PublicKeyword
+  |> withParameters [ parameter varName typeName ]
+  |> withBody []
+  |> withBaseConstructorInitializer [ argument (identifierName varName) ]
 
