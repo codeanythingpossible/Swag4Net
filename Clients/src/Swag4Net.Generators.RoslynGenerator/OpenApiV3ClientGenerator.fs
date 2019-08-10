@@ -316,7 +316,10 @@ module OpenApiV3ClientGenerator =
               | Referenced(RelativePath (path, None)) ->
                   let name = path.Split('/') |> Seq.last
                   name, v.Schema
-              | _ -> "bite", v.Schema
+              | Inlined s ->
+                  match s.Title with
+                  | Some t -> t, v.Schema
+                  | None -> "", v.Schema
             )
         |> generateClasses logError doc resourceProvider
         |> AsyncSeq.toArray
