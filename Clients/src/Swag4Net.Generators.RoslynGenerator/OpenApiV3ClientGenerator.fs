@@ -220,22 +220,22 @@ module OpenApiV3ClientGenerator =
                 match r with
                 | Error e -> logError e
                 | Ok (t,ts) ->
-                    yield t
+                    yield schema,t
                     for t in ts do
-                      yield t
+                      yield schema,t
             | _, Some anyOf -> 
               let! r = generateAnyOf logError doc k anyOf
               match r with
               | Error e -> logError e
               | Ok (t,ts) ->
-                  yield t
+                  yield schema,t
                   for t in ts do
-                    yield t
+                    yield schema,t
             | None, None -> 
                 let! r = generateBasicDto logError doc k schema
                 match r with
                 | Error e -> logError e
-                | Ok t -> yield t
+                | Ok t -> yield schema,t
 
         | Referenced ref ->
             let! r = ResourceProviderContext.Create doc ref |> schemaProvider
@@ -251,10 +251,10 @@ module OpenApiV3ClientGenerator =
                 let! c = generateBasicDto logError doc k schema
                 match c with
                 | Error e -> logError e
-                | Ok t -> yield t
+                | Ok t -> yield schema,t
     }
 
-  let generateDtos logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) : string =
+  let buildSchemasClasses logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) =
     async {
       let classes = 
         doc.Components
@@ -324,10 +324,18 @@ module OpenApiV3ClientGenerator =
         |> generateClasses logError doc resourceProvider
         |> AsyncSeq.toArray
 
+      return Array.concat [classes; routesDtos] |> dict
+    }
+
+  let generateDtos logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) : string =
+    async {
+      let! builtSchemas = buildSchemasClasses logError settings doc resourceProvider
+      
       let declaredClasses = 
-        Array.concat [classes; routesDtos]
-        |> Array.distinctBy (fun c -> c.Identifier.ValueText)
-        |> Array.map (fun c -> c :> MemberDeclarationSyntax)
+          builtSchemas.Values
+          |> Seq.distinctBy (fun c -> c.Identifier.ValueText)
+          |> Seq.map (fun c -> c :> MemberDeclarationSyntax)
+          |> Seq.toArray
 
       let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(declaredClasses)
       let syntaxFactory =
@@ -380,7 +388,7 @@ module OpenApiV3ClientGenerator =
     //    true,  sprintf "DiscriminatedUnion<%s>" g
     false, ""
 
-  let generateRestMethod generateBody verb (path:string) (route:Operation) =
+  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) =
     let discriminated,dtoType = resolveRouteSuccessReponseType route
     
     let request =
@@ -514,10 +522,21 @@ module OpenApiV3ClientGenerator =
       
     let methodArgs = //: ParameterSyntax array = Array.empty
       route.Parameters |> Option.defaultValue List.empty
-        |> Seq.map(
+        |> Seq.choose (
               fun p -> 
-                match p wi
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(p.ParamType |> rawTypeIdentifier |> parseTypeName)
+                match p with
+                | Inlined p ->
+                    match p.Schema with
+                    | Some (Inlined s) when builtSchemas.ContainsKey s ->
+                        let c = builtSchemas.Item s
+                        SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(c.Identifier.ValueText |> parseTypeName) |> Some
+                    | Some (Inlined s) ->
+                        match toDataTypeDescription doc s |> Async.RunSynchronously with
+                        | Ok r ->
+                            let c = builtSchemas.Item s
+                            SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(c.Identifier.ValueText |> parseTypeName) |> Some
+                        | Error e -> 
+
             )
         |> Seq.toArray
 
@@ -540,7 +559,7 @@ module OpenApiV3ClientGenerator =
     else
       method.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
 
-  let generateTagInterface (settings:GenerationSettings) (doc:Documentation) (tag:string option) (name:string) =
+  let generateTagInterface (settings:GenerationSettings) (doc:Documentation) (tag:string option) (name:string) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) =
     let methods =
       doc.Paths
       |> Seq.filter
@@ -550,7 +569,7 @@ module OpenApiV3ClientGenerator =
               | Some t -> r.Value.Get.Value.Tags |> List.contains t
            )
       |> Seq.choose (fun kv -> kv.Value.Get |> Option.map (fun o -> kv.Key,"GET", o))
-      |> Seq.map (fun (path,verb,operation) -> generateRestMethod false verb path operation)
+      |> Seq.map (fun (path,verb,operation) -> generateRestMethod doc false verb path operation builtSchemas)
       |> Seq.cast<MemberDeclarationSyntax>
       |> Seq.toArray
     SyntaxFactory
@@ -587,38 +606,42 @@ module OpenApiV3ClientGenerator =
 
 
   let generateClientsClasses (settings:GenerationSettings) (doc:Documentation) name logError (resourceProvider:ResourceProvider<Documentation, Schema>) =
-    
-    let routes = doc.Paths |> Map.toList
-    
-    let clients =
-      routes
-      |> List.collect (fun (_,r) -> r.Get.Value.Tags)
-      |> List.distinct
-      |> List.collect (
-             fun tag ->
-               let className = ucFirst <| sprintf "%s%s" tag name
-               let interfaceName = sprintf "I%s" className
-               let c = generateClientClass settings doc (Some tag) className
-               let i = generateTagInterface settings doc (Some tag) interfaceName
-               [c;i]
-           )
-    //let notTaggedRoutes =
-    //  routes |> List.filter (fun r -> r.Tags |> List.isEmpty)
-    
-    //let clientNotTagged =
-    //  generateClientClass settings {swagger with Routes=notTaggedRoutes} None name
+    async {
+      let! builtSchemas = buildSchemasClasses logError settings doc resourceProvider
 
-    //let interfaceNotTagged =
-    //  generateTagInterface settings swagger None (sprintf "I%s" name)
+      let routes = doc.Paths |> Map.toList
+    
+      let clients =
+        routes
+        |> List.collect (fun (_,r) -> r.Get.Value.Tags)
+        |> List.distinct
+        |> List.collect (
+               fun tag ->
+                 let className = ucFirst <| sprintf "%s%s" tag name
+                 let interfaceName = sprintf "I%s" className
+                 let c = generateClientClass settings doc (Some tag) className
+                 let i = generateTagInterface settings doc (Some tag) interfaceName builtSchemas
+                 [c;i]
+             )
+      //let notTaggedRoutes =
+      //  routes |> List.filter (fun r -> r.Tags |> List.isEmpty)
+    
+      //let clientNotTagged =
+      //  generateClientClass settings {swagger with Routes=notTaggedRoutes} None name
+
+      //let interfaceNotTagged =
+      //  generateTagInterface settings swagger None (sprintf "I%s" name)
       
-    SyntaxFactory
-        .NamespaceDeclaration(parseName settings.Namespace)
-        .NormalizeWhitespace()
-        .AddMembers((*interfaceNotTagged :: clientNotTagged ::*) clients |> List.toArray)
+      let code = SyntaxFactory
+                  .NamespaceDeclaration(parseName settings.Namespace)
+                  .NormalizeWhitespace()
+                  .AddMembers((*interfaceNotTagged :: clientNotTagged ::*) clients |> List.toArray)
+      return code
+    }
 
   let generateClients logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) name : string =
     async {
-      let ns = generateClientsClasses settings doc (ucFirst name) logError resourceProvider
+      let! ns = generateClientsClasses settings doc (ucFirst name) logError resourceProvider
       let syntaxFactory =
         SyntaxFactory.CompilationUnit()
         |> addUsings [
