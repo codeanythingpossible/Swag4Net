@@ -114,7 +114,7 @@ module OpenApiSpecification =
       Encoding: Map<string, Encoding> }
   and Schema =
     {
-      Title: string option
+      Title: string
       Type: string
       AllOf: Schema InlinedOrReferenced list option
       OneOf: Schema InlinedOrReferenced list option
@@ -153,9 +153,9 @@ module OpenApiSpecification =
   and Response =
     {
       Description: string
-      Headers: Map<string, InlinedOrReferenced<Header>> option
-      Content: Map<MimeType, MediaType> option
-      Links: Map<string, InlinedOrReferenced<Link>> option }
+      Headers: Map<string, InlinedOrReferenced<Header>>
+      Content: Map<MimeType, MediaType>
+      Links: Map<string, InlinedOrReferenced<Link>> }
   and Responses = 
     {
        Responses: Map<HttpStatusCode, InlinedOrReferenced<Response>>

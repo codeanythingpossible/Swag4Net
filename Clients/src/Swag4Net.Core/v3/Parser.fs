@@ -242,9 +242,10 @@ let rec parseSchema node =
                 }
 
               let required = o |> selectToken "required" |> Option.bind readStringArray
+              let title = o |> readStringOption "title"
 
               return 
-                 { Title = o |> readStringOption "title"
+                 { Title = title |> Option.defaultValue ""
                    Type = typ
                    AllOf = allOf
                    OneOf = oneOf
@@ -369,9 +370,9 @@ let parseResponse node : Response ParsingState =
 
     return
       { Description = description
-        Headers = None
-        Content = content
-        Links = None }
+        Headers = Map.empty
+        Content = content |> Option.defaultValue Map.empty
+        Links = Map.empty }
   }
 
 let parseResponses node =

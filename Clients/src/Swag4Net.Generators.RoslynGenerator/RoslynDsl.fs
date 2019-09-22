@@ -3,7 +3,6 @@ module Swag4Net.Generators.RoslynGenerator.RoslynDsl
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
-open Swag4Net.Core
 
 let parseName = SyntaxFactory.ParseName
 let identifierName (n:string) = SyntaxFactory.IdentifierName n
@@ -26,9 +25,12 @@ let cleanTypeName (name:string) =
 let constructor (name:string) =
   SyntaxFactory.ConstructorDeclaration name
 
-let inline withModifier<'t when 't :> BaseMethodDeclarationSyntax> (kind:SyntaxKind) (c:'t) =
-  let m = c :> BaseMethodDeclarationSyntax
-  m.WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(kind))) :?> 't
+let constructorPublic (name:string) =
+  (SyntaxFactory.ConstructorDeclaration name).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token SyntaxKind.PublicKeyword))
+
+//let inline withModifier<'t when 't :> BaseMethodDeclarationSyntax> (kind:SyntaxKind) (c:'t) =
+//  let m = c :> BaseMethodDeclarationSyntax
+//  m.WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(kind))) :?> 't
 
 let withParameters (parameters:ParameterSyntax list) (c:ConstructorDeclarationSyntax) =
   let paramList =
@@ -135,8 +137,7 @@ let addArg a (args:SeparatedSyntaxList<ArgumentSyntax>) =
   args.Add(a)
 
 let callBaseConstructor varName typeName (clientName:string) =
-  constructor clientName
-  |> withModifier SyntaxKind.PublicKeyword
+  constructorPublic clientName
   |> withParameters [ parameter varName typeName ]
   |> withBody []
   |> withBaseConstructorInitializer [ argument (identifierName varName) ]

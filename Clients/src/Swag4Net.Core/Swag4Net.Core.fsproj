@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="abstract_parser.fsx" />
+    <None Include="generation.fsx" />
     <None Include="script.fsx" />
     <None Include="ParsingV3.fsx" />
     <None Include="computation-learning.fsx" />

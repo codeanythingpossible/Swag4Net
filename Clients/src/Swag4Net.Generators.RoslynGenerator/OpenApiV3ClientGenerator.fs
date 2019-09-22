@@ -37,6 +37,26 @@ module OpenApiV3ClientGenerator =
       | _ -> return Error (sprintf "Cannot find reference %A" ref)
     }
 
+  let nameSchema (s:Schema InlinedOrReferenced) =
+    match s with
+    | Referenced (InnerReference (Anchor a)) -> 
+        let name = a.Split '/' |> Seq.last
+        name, s
+    | Referenced(ExternalUrl (_, Some (Anchor a))) ->
+        let name = a.Split '/' |> Seq.last
+        name, s
+    | Referenced(ExternalUrl (uri, None)) ->
+        let name = uri.Segments |> Seq.last
+        name, s
+    | Referenced(RelativePath (_, Some (Anchor a))) ->
+        let name = a.Split '/' |> Seq.last
+        name, s
+    | Referenced(RelativePath (path, None)) ->
+        let name = path.Split '/' |> Seq.last
+        name, s
+    | Inlined v ->
+        v.Title, s
+
   let toDataTypeDescription doc (source:Schema) =
     let rec transorm (schema:Schema) =
       async {
@@ -244,9 +264,9 @@ module OpenApiV3ClientGenerator =
             | Ok content ->
                 let schema = 
                   match content.Content.Title with 
-                  | Some n when n.Equals("object", System.StringComparison.OrdinalIgnoreCase) -> { content.Content with Title=(Some content.Name) }
-                  | None -> { content.Content with Title=(Some content.Name) }
-                  | Some _ -> content.Content
+                  | n when n.Equals("object", System.StringComparison.OrdinalIgnoreCase) -> { content.Content with Title=content.Name }
+                  | n when System.String.IsNullOrWhiteSpace n -> { content.Content with Title=content.Name }
+                  | _ -> content.Content
 
                 let! c = generateBasicDto logError doc k schema
                 match c with
@@ -280,7 +300,7 @@ module OpenApiV3ClientGenerator =
           doc.Paths
           |> Seq.choose (fun p -> f p |> Option.bind (fun o -> o.Responses.Default))
           |> Seq.choose (function | Inlined r -> Some r | _ -> None)
-          |> Seq.map (fun r -> r.Content |> Option.defaultValue Map.empty |> Map.toArray |> Array.map snd)
+          |> Seq.map (fun r -> r.Content |> Map.toArray |> Array.map snd)
           |> Seq.collect id
           |> Seq.toList
 
@@ -298,29 +318,7 @@ module OpenApiV3ClientGenerator =
 
       let routesDtos = 
         payloads
-        |> Seq.map (
-              fun v ->
-              match v.Schema with
-              | Referenced (InnerReference (Anchor a)) -> 
-                  let name = a.Split '/' |> Seq.last
-                  name, v.Schema
-              | Referenced(ExternalUrl (_, Some (Anchor a))) ->
-                  let name = a.Split '/' |> Seq.last
-                  name, v.Schema
-              | Referenced(ExternalUrl (uri, None)) ->
-                  let name = uri.Segments |> Seq.last
-                  name, v.Schema
-              | Referenced(RelativePath (_, Some (Anchor a))) ->
-                  let name = a.Split '/' |> Seq.last
-                  name, v.Schema
-              | Referenced(RelativePath (path, None)) ->
-                  let name = path.Split '/' |> Seq.last
-                  name, v.Schema
-              | Inlined s ->
-                  match s.Title with
-                  | Some t -> t, v.Schema
-                  | None -> "", v.Schema
-            )
+        |> Seq.map (fun v -> nameSchema v.Schema)
         |> generateClasses logError doc resourceProvider
         |> AsyncSeq.toArray
 
@@ -360,36 +358,53 @@ module OpenApiV3ClientGenerator =
         | DataType.Array (Inlined propType) -> propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
         | DataType.Array (Referenced _) -> "object"
         | DataType.Object -> "object"
-    | ComplexType s -> s.Title.Value
+    | ComplexType s -> s.Title
 
   let isSuccess c =
     c >= 200 && c < 300
 
-  let resolveRouteSuccessReponseType (route:Operation) =
-    //let successResponses = route.Responses |> List.filter (fun (code, _) -> code |> isSuccess) |> List.map snd
-    //match successResponses with
-    //| [] -> false, ""
-    //| [rs] -> 
-    //    match rs.Type with
-    //    | Some t -> false, rawTypeIdentifier t
-    //    | None -> false, ""
-    //| responses ->
-    //    let types =
-    //      responses
-    //      |> Seq.map(
-    //           fun r ->
-    //            match r.Type with
-    //            | Some t -> rawTypeIdentifier t
-    //            | None -> "Nothing" 
-    //        )
-    //      |> Seq.distinct
-    //      |> Seq.toArray
-    //    let g = System.String.Join(',', types)
-    //    true,  sprintf "DiscriminatedUnion<%s>" g
-    false, ""
+  let resolveRouteSuccessReponseType (route:Operation) doc (schemaProvider:ResourceProvider<Documentation, Schema>) =
+    let responses = 
+      //route.Responses.Default // TODO: default response
+      route.Responses.Responses
+      |> Seq.choose (
+            fun i -> 
+              match i.Value with
+              | Inlined s -> 
+                  let name = 
+                    s.Content
+                    |> Seq.tryHead
+                    |> Option.bind (
+                        fun s -> 
+                          match s.Value.Schema with
+                          | Inlined schema ->
+                              schema |> ComplexType |> rawTypeIdentifier |> Some
+                          | Referenced ref ->
+                              let r = ResourceProviderContext.Create doc ref |> schemaProvider |> Async.RunSynchronously
+                              match r with
+                              | Ok schema -> Some schema.Name
+                              | Error _ -> None
+                          )
+                  match name with
+                  | None -> Some "Nothing"
+                  | Some n -> Some n
+              | Referenced _ ->
+                  None //TODO: fetch reference
+        )
+      |> Seq.distinct
+      |> Seq.toList
 
-  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) =
-    let discriminated,dtoType = resolveRouteSuccessReponseType route
+    match responses with
+    | [] -> false, ""
+    | ["Nothing"] -> false, ""
+    | [rs] -> false, rs
+    | types ->
+        let g = System.String.Join(',', types)
+        true,  sprintf "DiscriminatedUnion<%s>" g
+    //false, ""
+
+  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (resourceProvider:ResourceProvider<Documentation, Schema>) =
+    let discriminated,dtoType = resolveRouteSuccessReponseType route doc resourceProvider
     
     let request =
       declareVariableWithValue "request"
@@ -520,7 +535,7 @@ module OpenApiV3ClientGenerator =
             .Add(retResponse)
       )
       
-    let methodArgs = //: ParameterSyntax array = Array.empty
+    let methodArgs =
       route.Parameters |> Option.defaultValue List.empty
         |> Seq.choose (
               fun p -> 
@@ -533,10 +548,9 @@ module OpenApiV3ClientGenerator =
                     | Some (Inlined s) ->
                         match toDataTypeDescription doc s |> Async.RunSynchronously with
                         | Ok r ->
-                            let c = builtSchemas.Item s
-                            SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(c.Identifier.ValueText |> parseTypeName) |> Some
-                        | Error e -> 
-
+                            SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(getClrType r) |> Some
+                        | Error e -> None
+                    | None -> None
             )
         |> Seq.toArray
 
@@ -559,51 +573,73 @@ module OpenApiV3ClientGenerator =
     else
       method.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
 
-  let generateTagInterface (settings:GenerationSettings) (doc:Documentation) (tag:string option) (name:string) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) =
-    let methods =
-      doc.Paths
-      |> Seq.filter
-           (fun r ->
-              match tag with
-              | None -> r.Value.Get.Value.Tags |> List.isEmpty
-              | Some t -> r.Value.Get.Value.Tags |> List.contains t
-           )
-      |> Seq.choose (fun kv -> kv.Value.Get |> Option.map (fun o -> kv.Key,"GET", o))
-      |> Seq.map (fun (path,verb,operation) -> generateRestMethod doc false verb path operation builtSchemas)
-      |> Seq.cast<MemberDeclarationSyntax>
-      |> Seq.toArray
-    SyntaxFactory
-      .InterfaceDeclaration(name)
-      .AddModifiers(SyntaxFactory.Token SyntaxKind.PublicKeyword)
-      .AddMembers(methods) :> MemberDeclarationSyntax
-
-  let generateClientClass (settings:GenerationSettings) (swagger:Documentation) (tag:string option) name =
+  let generateClientClass (settings:GenerationSettings) (tag:string option) (doc:Documentation) name (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (resourceProvider:ResourceProvider<Documentation, Schema>) =
     let constructors =
       [|
         callBaseConstructor "baseUrl" "string" name
         callBaseConstructor "baseUrl" "Uri" name
         callBaseConstructor "client" "HttpClient" name
       |]
-    let methods : MemberDeclarationSyntax array = Array.empty
-    //let methods = 
-    //  swagger.Routes
-    //  |> Seq.filter
-    //       (fun r ->
-    //          match tag with
-    //          | None -> r.Tags |> List.isEmpty
-    //          | Some t -> r.Tags |> List.contains t
-    //       )
-    //  |> Seq.map (generateRestMethod true)
-    //  |> Seq.cast<MemberDeclarationSyntax>
-    //  |> Seq.toArray
+    
+    let operations =
+      doc.Paths
+      |> Seq.collect
+           (fun r ->
+              [
+                r.Value.Get |> Option.map (fun o -> r.Key, "GET", o)
+                r.Value.Post |> Option.map (fun o -> r.Key,"POST", o)
+                r.Value.Delete |> Option.map (fun o -> r.Key,"DELETE", o)
+                r.Value.Head |> Option.map (fun o -> r.Key, "HEAD", o)
+                r.Value.Put |> Option.map (fun o -> r.Key, "PUT", o)
+                r.Value.Patch |> Option.map (fun o -> r.Key,"PATCH", o)
+                r.Value.Options |> Option.map (fun o -> r.Key, "OPTIONS", o)
+              ] |> Seq.choose id
+           )
+      |> Seq.choose (
+            fun i ->
+              match tag, i with
+              | Some tag, (_,_,op) -> 
+                  if op.Tags |> List.contains tag then Some i else None
+              | None, (_,_,op) -> 
+                  if op.Tags |> List.isEmpty then Some i else None
+              | _ -> None
+              )
+    let methods =
+      operations
+      |> Seq.map (fun (path,verb,operation) -> generateRestMethod doc true verb path operation builtSchemas resourceProvider)
+      |> Seq.cast<MemberDeclarationSyntax>
+      |> Seq.toArray
+
     let interfaceName = sprintf "I%s" name
     SyntaxFactory.ClassDeclaration(name)
           .AddModifiers(SyntaxFactory.Token SyntaxKind.PublicKeyword)
           .AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName "RestApiClientBase"))
           .AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName interfaceName))
           .AddMembers(constructors)
-          .AddMembers(methods) :> MemberDeclarationSyntax
+          .AddMembers(methods)
 
+  let extractInterface (c:ClassDeclarationSyntax) =
+    let methods = 
+      c.Members
+      |> Seq.choose (
+          function
+          | :? MethodDeclarationSyntax as m when m.Modifiers |> Seq.exists(fun t -> t.IsKind SyntaxKind.PublicKeyword) -> 
+              SyntaxFactory
+                .MethodDeclaration(m.ReturnType, m.Identifier)
+                .WithConstraintClauses(m.ConstraintClauses)
+                .WithParameterList(m.ParameterList)
+                .WithSemicolonToken(SyntaxFactory.Token SyntaxKind.SemicolonToken)
+              |> Some
+          | _ -> None
+        )
+      |> Seq.cast<MemberDeclarationSyntax>
+      |> Seq.toArray
+    let interfaceName = sprintf "I%s" (c.Identifier.ToFullString())
+    SyntaxFactory
+      .InterfaceDeclaration(interfaceName)
+      .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token SyntaxKind.PublicKeyword))
+      .AddMembers(methods)
+    
 
   let generateClientsClasses (settings:GenerationSettings) (doc:Documentation) name logError (resourceProvider:ResourceProvider<Documentation, Schema>) =
     async {
@@ -611,31 +647,52 @@ module OpenApiV3ClientGenerator =
 
       let routes = doc.Paths |> Map.toList
     
-      let clients =
-        routes
-        |> List.collect (fun (_,r) -> r.Get.Value.Tags)
+      let createTaggedClients (fs : (Path -> Operation option) list) =
+        fs
+        |> List.collect (fun f -> routes |> List.choose (fun (_,r) -> f r))
+        |> List.collect (fun op -> op.Tags)
         |> List.distinct
         |> List.collect (
                fun tag ->
                  let className = ucFirst <| sprintf "%s%s" tag name
-                 let interfaceName = sprintf "I%s" className
-                 let c = generateClientClass settings doc (Some tag) className
-                 let i = generateTagInterface settings doc (Some tag) interfaceName builtSchemas
-                 [c;i]
+                 let c = generateClientClass settings (Some tag) doc className builtSchemas resourceProvider
+                 let i = extractInterface c
+                 [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
              )
-      //let notTaggedRoutes =
-      //  routes |> List.filter (fun r -> r.Tags |> List.isEmpty)
-    
-      //let clientNotTagged =
-      //  generateClientClass settings {swagger with Routes=notTaggedRoutes} None name
 
-      //let interfaceNotTagged =
-      //  generateTagInterface settings swagger None (sprintf "I%s" name)
-      
+      let createNotTaggedClients (fs : (Path -> Operation option) list) =
+
+        let className = ucFirst name
+        let c = generateClientClass settings None doc className builtSchemas resourceProvider
+        let i = extractInterface c
+        [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
+
+      let clients =
+        createTaggedClients [
+          fun p -> p.Get
+          fun p -> p.Post
+          fun p -> p.Delete
+          fun p -> p.Head
+          fun p -> p.Put
+          fun p -> p.Patch
+          fun p -> p.Options
+        ]
+        
+      let clientNotTagged =
+        createNotTaggedClients [
+          fun p -> p.Get
+          fun p -> p.Post
+          fun p -> p.Delete
+          fun p -> p.Head
+          fun p -> p.Put
+          fun p -> p.Patch
+          fun p -> p.Options
+        ]
+
       let code = SyntaxFactory
                   .NamespaceDeclaration(parseName settings.Namespace)
                   .NormalizeWhitespace()
-                  .AddMembers((*interfaceNotTagged :: clientNotTagged ::*) clients |> List.toArray)
+                  .AddMembers(clientNotTagged @ clients |> List.toArray)
       return code
     }
 
