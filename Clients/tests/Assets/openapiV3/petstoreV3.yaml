@@ -77,8 +77,8 @@ paths:
       schema:
         type: array
         style: simple
-      items:
-        type: string
+        items:
+          type: string
 
     servers:
     - url: https://{username}.gigantic-server3.com:{port}/{basePath}

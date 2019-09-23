@@ -105,7 +105,7 @@ module OpenApiV3ClientGenerator =
       }
     transorm source
 
-  let getClrType (source:DataTypeDescription<Schema>) = 
+  let getClrType (* resourceProvider:ResourceProvider<Documentation, Schema> *) (source:DataTypeDescription<Schema>) = 
     let rec getTypeName (t:DataTypeDescription<Schema>) =
         match t with
         | PrimaryType dataType -> 
@@ -121,7 +121,7 @@ module OpenApiV3ClientGenerator =
             | DataType.Integer64 -> "long"
             | DataType.Boolean -> "bool"
             | DataType.Array (Inlined s) -> s |> getTypeName |> sprintf "IEnumerable<%s>"
-            | DataType.Array (Referenced _) -> "object"
+            | DataType.Array (Referenced r) -> "object"
             | DataType.Object -> "object"
         | ComplexType s -> s.Type
     source |> getTypeName |> SyntaxFactory.ParseTypeName
@@ -403,7 +403,7 @@ module OpenApiV3ClientGenerator =
         true,  sprintf "DiscriminatedUnion<%s>" g
     //false, ""
 
-  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (resourceProvider:ResourceProvider<Documentation, Schema>) =
+  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (resourceProvider:ResourceProvider<Documentation, Schema>) (pathParams:Parameter InlinedOrReferenced list) =
     let discriminated,dtoType = resolveRouteSuccessReponseType route doc resourceProvider
     
     let request =
@@ -511,8 +511,7 @@ module OpenApiV3ClientGenerator =
       )
 
     let queryParams =
-      route.Parameters
-      |> Option.defaultValue List.empty
+      pathParams @ route.Parameters
       |> List.choose(
             fun p -> 
             match p with
@@ -536,7 +535,7 @@ module OpenApiV3ClientGenerator =
       )
       
     let methodArgs =
-      route.Parameters |> Option.defaultValue List.empty
+      pathParams @ route.Parameters
         |> Seq.choose (
               fun p -> 
                 match p with
@@ -550,7 +549,7 @@ module OpenApiV3ClientGenerator =
                         | Ok r ->
                             SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(getClrType r) |> Some
                         | Error e -> None
-                    | None -> None
+                    | _ -> None
             )
         |> Seq.toArray
 
@@ -586,27 +585,27 @@ module OpenApiV3ClientGenerator =
       |> Seq.collect
            (fun r ->
               [
-                r.Value.Get |> Option.map (fun o -> r.Key, "GET", o)
-                r.Value.Post |> Option.map (fun o -> r.Key,"POST", o)
-                r.Value.Delete |> Option.map (fun o -> r.Key,"DELETE", o)
-                r.Value.Head |> Option.map (fun o -> r.Key, "HEAD", o)
-                r.Value.Put |> Option.map (fun o -> r.Key, "PUT", o)
-                r.Value.Patch |> Option.map (fun o -> r.Key,"PATCH", o)
-                r.Value.Options |> Option.map (fun o -> r.Key, "OPTIONS", o)
+                r.Value.Get |> Option.map (fun o -> r.Key, "GET", o, r.Value.Parameters)
+                r.Value.Post |> Option.map (fun o -> r.Key,"POST", o, r.Value.Parameters)
+                r.Value.Delete |> Option.map (fun o -> r.Key,"DELETE", o, r.Value.Parameters)
+                r.Value.Head |> Option.map (fun o -> r.Key, "HEAD", o, r.Value.Parameters)
+                r.Value.Put |> Option.map (fun o -> r.Key, "PUT", o, r.Value.Parameters)
+                r.Value.Patch |> Option.map (fun o -> r.Key,"PATCH", o, r.Value.Parameters)
+                r.Value.Options |> Option.map (fun o -> r.Key, "OPTIONS", o, r.Value.Parameters)
               ] |> Seq.choose id
            )
       |> Seq.choose (
             fun i ->
               match tag, i with
-              | Some tag, (_,_,op) -> 
+              | Some tag, (_,_,op,_) -> 
                   if op.Tags |> List.contains tag then Some i else None
-              | None, (_,_,op) -> 
+              | None, (_,_,op,_) -> 
                   if op.Tags |> List.isEmpty then Some i else None
               | _ -> None
               )
     let methods =
       operations
-      |> Seq.map (fun (path,verb,operation) -> generateRestMethod doc true verb path operation builtSchemas resourceProvider)
+      |> Seq.map (fun (path,verb,operation,pathParams) -> generateRestMethod doc true verb path operation builtSchemas resourceProvider pathParams)
       |> Seq.cast<MemberDeclarationSyntax>
       |> Seq.toArray
 

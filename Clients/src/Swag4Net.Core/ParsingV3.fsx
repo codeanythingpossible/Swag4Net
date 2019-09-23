@@ -36,7 +36,10 @@ let specv3File = __SOURCE_DIRECTORY__ /> ".." /> ".." /> "tests" /> "Assets" /> 
 let doc = fromYaml specv3File
 let spec = parseOpenApiDocument doc
 
-spec |> Result.map (fun r -> r.Components.Value.Schemas.Value.Item "ExtendedErrorModel")
+// spec |> Result.map (fun r -> r.Components.Value.Schemas.Value.Item "ExtendedErrorModel")
+
+spec |> Result.map (fun r -> r.Paths.Item "/pets")
+
 
 
 //spec |> Result.map (fun r -> r.Paths.Item "/pets")

@@ -194,9 +194,9 @@ let rec parseSchema node =
                       return Some b
                     }
                 | _ -> ParsingState.success None
-                
+              
               let! items =
-                node |> selectToken "items" |> parseOptionalInlinedOrReferenced parseSchema
+                o |> selectToken "items" |> parseOptionalInlinedOrReferenced parseSchema
 
               let! allOf = parseInheritance "allOf"
               let! oneOf = parseInheritance "oneOf"
@@ -445,7 +445,7 @@ let operation template verb node =
           Description = description
           ExternalDocs = externalDocs
           OperationId = id
-          Parameters = parameters
+          Parameters = parameters |> Option.defaultValue List.Empty
           RequestBody = None
           Responses = rs
           Callbacks = None // TODO
@@ -488,8 +488,8 @@ let parsePaths doc : ParsingState<Map<string,Path>> =
             let servers = node |> parseServers |> ParsingState.toOption
             let parameters = 
               match node |> parseParameters |> fun i -> i.Result with
-              | Ok v -> v
-              | _ -> None
+              | Ok v -> v |> Option.defaultValue List.Empty
+              | _ -> List.Empty
 
             template,
               { Reference = ""

@@ -75,7 +75,7 @@ module OpenApiSpecification =
       Patch:Operation option
       Trace:Operation option
       Servers:Server list option
-      Parameters:Parameter InlinedOrReferenced list option
+      Parameters:Parameter InlinedOrReferenced list
       }
   and Operation =
     {
@@ -84,7 +84,7 @@ module OpenApiSpecification =
       Description: string option
       ExternalDocs: ExternalDocumentation option
       OperationId: string 
-      Parameters: Parameter InlinedOrReferenced list option
+      Parameters: Parameter InlinedOrReferenced list
       RequestBody: Request InlinedOrReferenced option
       Responses: Responses
       Callbacks: Map<string, Callback InlinedOrReferenced> option
