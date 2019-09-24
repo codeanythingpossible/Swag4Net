@@ -15,12 +15,28 @@ let ucFirst (text:string) =
   else
     sprintf "%s%s" (text.Substring(0, 1).ToUpperInvariant()) (text.Substring(1))
 
+let isLetterOrDigit = System.Char.IsLetterOrDigit
+
+let trimStart (chars:char array) (text:string) =
+  text.TrimStart chars
+
 let cleanTypeName (name:string) =
-  let nums = [|0 .. 9|] |> Array.map(fun i -> i.ToString().[0])
   name
-    .Replace('-', '_')
-    .Replace('.', '_')
-    .TrimStart(nums) |> ucFirst
+  |> Seq.skipWhile System.Char.IsDigit
+  |> Seq.choose (
+       fun c -> 
+         if c |> isLetterOrDigit |> not
+         then None
+         else Some c
+     )
+  |> Seq.toArray
+  |> System.String
+  |> ucFirst
+  |> fun r -> if System.String.IsNullOrWhiteSpace r then sprintf "_%s" name else r
+
+//cleanTypeName "Account Information Service (AIS)"
+//cleanTypeName "98Account Information Service (AIS)8787"
+//cleanTypeName "98"
 
 let constructor (name:string) =
   SyntaxFactory.ConstructorDeclaration name

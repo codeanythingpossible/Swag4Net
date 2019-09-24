@@ -550,6 +550,9 @@ module OpenApiV3ClientGenerator =
                             SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(getClrType r) |> Some
                         | Error e -> None
                     | _ -> None
+                | Referenced r ->
+                    // TODO: load parameter references
+                    None
             )
         |> Seq.toArray
 
@@ -653,7 +656,7 @@ module OpenApiV3ClientGenerator =
         |> List.distinct
         |> List.collect (
                fun tag ->
-                 let className = ucFirst <| sprintf "%s%s" tag name
+                 let className = cleanTypeName <| sprintf "%s%s" tag name
                  let c = generateClientClass settings (Some tag) doc className builtSchemas resourceProvider
                  let i = extractInterface c
                  [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
@@ -661,7 +664,7 @@ module OpenApiV3ClientGenerator =
 
       let createNotTaggedClients (fs : (Path -> Operation option) list) =
 
-        let className = ucFirst name
+        let className = cleanTypeName name
         let c = generateClientClass settings None doc className builtSchemas resourceProvider
         let i = extractInterface c
         [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]

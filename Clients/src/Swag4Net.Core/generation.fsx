@@ -10,16 +10,15 @@
 #r "System.Text.Encoding"
 #r "System.Collections.Immutable"
 
-#load "C:\dev\Swag4Net-1\Clients\src\Swag4Net.Generators.RoslynGenerator\RoslynDsl.fs"
+//#load "C:\dev\Swag4Net-1\Clients\src\Swag4Net.Generators.RoslynGenerator\RoslynDsl.fs"
 
-open System
-open System.IO
+//open System
+//open System.IO
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
 
-
-let (/>) a b = Path.Combine(a, b)
+//let (/>) a b = Path.Combine(a, b)
 
 let code =
   """public class PetsApiClient : RestApiClientBase, IPetsApiClient
@@ -27,15 +26,7 @@ let code =
     public PetsApiClient(string baseUrl): base(baseUrl)
     {
     }
-
-    public PetsApiClient(Uri baseUrl): base(baseUrl)
-    {
-    }
-
-    public PetsApiClient(HttpClient client): base(client)
-    {
-    }
-
+    
     public Task<Result<Pets>> ListPets(int limit, CancellationToken cancellationToken = default(CancellationToken))
     {
         var request = new HttpRequestMessage(HttpMethod.GET, "/pets");
@@ -74,13 +65,11 @@ let code =
     }
 }"""
 
-
 let tree = CSharpSyntaxTree.ParseText code
 let root = tree.GetCompilationUnitRoot()
 
 let c = 
-  root.Members 
-  //|> Seq.map (fun m -> m.GetType().Name)
+  root.Members
   |> Seq.choose (function | :? ClassDeclarationSyntax as c -> Some c | _ -> None)
   |> Seq.head
 
@@ -99,7 +88,6 @@ let methods =
     )
   |> Seq.cast<MemberDeclarationSyntax>
   |> Seq.toArray
-  //|> List.map(fun m -> m.ToFullString())
 
 let interfaceName = sprintf "I%s" (c.Identifier.ToFullString())
 let ``interface`` = 
