@@ -110,6 +110,19 @@ module Loaders =
             )
       loadOpenApiComponent<OpenApiSpecification.Response> http "responses" mapper ctx
 
+  let loadOpenApiParameters http : ResourceProvider<OpenApiSpecification.Documentation, OpenApiSpecification.Parameter> =
+    fun ctx ->
+      let mapper : string -> OpenApiSpecification.Components -> OpenApiSpecification.Parameter InlinedOrReferenced option = 
+        fun name c ->
+          c.Parameters
+          |> Option.bind (
+            fun s -> 
+              match s.TryGetValue name with
+              | false,_ -> None
+              | true,s -> Some s
+            )
+      loadOpenApiComponent<OpenApiSpecification.Parameter> http "parameters" mapper ctx
+
 
 [<EntryPoint>]
 let main argv =
@@ -163,7 +176,8 @@ let main argv =
 
     let providers : OpenApiV3ClientGenerator.ResourceProviders =
       { SchemaProvider = Loaders.loadOpenApiSchema http
-        ResponseProvider = Loaders.loadOpenApiResponse http }
+        ResponseProvider = Loaders.loadOpenApiResponse http
+        ParameterProvider = Loaders.loadOpenApiParameters http }
 
     match specFile |> getRawSpec |> Parser.parse loadSwaggerReference with
     | Ok doc ->  

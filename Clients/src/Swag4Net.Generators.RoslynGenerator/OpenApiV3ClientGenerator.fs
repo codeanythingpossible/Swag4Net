@@ -16,6 +16,7 @@ module OpenApiV3ClientGenerator =
 
   type ResourceProviders =
     { SchemaProvider : ResourceProvider<Documentation, Schema>
+      ParameterProvider : ResourceProvider<Documentation, Parameter>
       ResponseProvider : ResourceProvider<Documentation, Response> }
 
   let getSchema (doc:Documentation) (schema:Schema InlinedOrReferenced) =
@@ -555,20 +556,26 @@ module OpenApiV3ClientGenerator =
           ).WithArgumentList(SyntaxFactory.ArgumentList(args))
       )
 
+    let handleParamInBody (p:Parameter) =
+      match p.In with
+      | InQuery -> Some (callQueryParam p :> StatementSyntax)
+      | InPath -> Some (callPathParam p :> StatementSyntax)
+      | InBody _ -> Some (callBodyParam p :> StatementSyntax)
+      | InCookie -> Some (callCookieParam p :> StatementSyntax)
+      | InHeader -> Some (callHeaderParam p :> StatementSyntax)
+      | InFormData -> Some (callFormDataParam p :> StatementSyntax)
+
     let queryParams =
       pathParams @ route.Parameters
       |> List.choose(
             fun p -> 
-            match p with
-            | Inlined p ->
-                match p.In with
-                | InQuery -> Some (callQueryParam p :> StatementSyntax)
-                | InPath -> Some (callPathParam p :> StatementSyntax)
-                | InBody _ -> Some (callBodyParam p :> StatementSyntax)
-                | InCookie -> Some (callCookieParam p :> StatementSyntax)
-                | InHeader -> Some (callHeaderParam p :> StatementSyntax)
-                | InFormData -> Some (callFormDataParam p :> StatementSyntax)
-            | _ -> None
+              match p with
+              | Inlined p -> handleParamInBody p
+              | Referenced ref ->
+                  let r = ResourceProviderContext.Create doc ref |> providers.ParameterProvider |> Async.RunSynchronously
+                  match r with
+                  | Ok content -> handleParamInBody content.Content
+                  | Error _ -> None
           )
     let block = 
       SyntaxFactory.Block(
@@ -579,25 +586,29 @@ module OpenApiV3ClientGenerator =
             .Add(retResponse)
       )
       
+    let handleParam (p:Parameter) = 
+      match p.Schema with
+      | Some (Inlined s) when builtSchemas.ContainsKey s ->
+          let c = builtSchemas.Item s
+          (parameterNamed p.Name).WithType(c.Identifier.ValueText |> parseTypeName) |> Some
+      | Some (Inlined s) ->
+          match toDataTypeDescription doc s |> Async.RunSynchronously with
+          | Ok r ->
+              (parameterNamed p.Name).WithType(getClrType r) |> Some
+          | Error e -> None
+      | _ -> None
+
     let methodArgs =
       pathParams @ route.Parameters
         |> Seq.choose (
               fun p -> 
                 match p with
-                | Inlined p ->
-                    match p.Schema with
-                    | Some (Inlined s) when builtSchemas.ContainsKey s ->
-                        let c = builtSchemas.Item s
-                        SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(c.Identifier.ValueText |> parseTypeName) |> Some
-                    | Some (Inlined s) ->
-                        match toDataTypeDescription doc s |> Async.RunSynchronously with
-                        | Ok r ->
-                            SyntaxFactory.Parameter(SyntaxFactory.Identifier p.Name).WithType(getClrType r) |> Some
-                        | Error e -> None
-                    | _ -> None
-                | Referenced r ->
-                    // TODO: load parameter references
-                    None
+                | Inlined p -> handleParam p
+                | Referenced ref ->
+                    let r = ResourceProviderContext.Create doc ref |> providers.ParameterProvider |> Async.RunSynchronously
+                    match r with
+                    | Ok content -> handleParam content.Content
+                    | Error _ -> None
             )
         |> Seq.toArray
 

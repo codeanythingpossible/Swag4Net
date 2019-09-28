@@ -6,6 +6,7 @@ open Microsoft.CodeAnalysis.CSharp.Syntax
 
 let parseName = SyntaxFactory.ParseName
 let identifierName (n:string) = SyntaxFactory.IdentifierName n
+let identifier i = SyntaxFactory.Identifier i
 let usingDirective = parseName >> SyntaxFactory.UsingDirective
 let parseTypeName = SyntaxFactory.ParseTypeName
 
@@ -33,6 +34,11 @@ let cleanTypeName (name:string) =
   |> System.String
   |> ucFirst
   |> fun r -> if System.String.IsNullOrWhiteSpace r then sprintf "_%s" name else r
+
+//Both cleaning could be different later
+let cleanVarName = cleanTypeName
+
+let parameterNamed name = name |> cleanVarName |> identifier |> SyntaxFactory.Parameter
 
 let constructor (name:string) =
   SyntaxFactory.ConstructorDeclaration name
