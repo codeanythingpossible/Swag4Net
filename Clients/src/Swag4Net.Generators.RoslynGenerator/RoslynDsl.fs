@@ -34,19 +34,11 @@ let cleanTypeName (name:string) =
   |> ucFirst
   |> fun r -> if System.String.IsNullOrWhiteSpace r then sprintf "_%s" name else r
 
-//cleanTypeName "Account Information Service (AIS)"
-//cleanTypeName "98Account Information Service (AIS)8787"
-//cleanTypeName "98"
-
 let constructor (name:string) =
   SyntaxFactory.ConstructorDeclaration name
 
 let constructorPublic (name:string) =
   (SyntaxFactory.ConstructorDeclaration name).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token SyntaxKind.PublicKeyword))
-
-//let inline withModifier<'t when 't :> BaseMethodDeclarationSyntax> (kind:SyntaxKind) (c:'t) =
-//  let m = c :> BaseMethodDeclarationSyntax
-//  m.WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(kind))) :?> 't
 
 let withParameters (parameters:ParameterSyntax list) (c:ConstructorDeclarationSyntax) =
   let paramList =

@@ -34,25 +34,6 @@ let code =
         return this.Execute<Pets>(request, cancellationToken);
     }
 
-    public Task<Result> CreatePets(CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var request = new HttpRequestMessage(HttpMethod.POST, "/pets");
-        return this.Execute(request, cancellationToken);
-    }
-
-    public Task<Result> UpdatePet(CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var request = new HttpRequestMessage(HttpMethod.PATCH, "/pets");
-        return this.Execute(request, cancellationToken);
-    }
-
-    public Task<Result<Pets>> ShowPetById(string petId, CancellationToken cancellationToken = default(CancellationToken))
-    {
-        var request = new HttpRequestMessage(HttpMethod.GET, "/pets/{petId}");
-        base.AddPathParameter(request, "petId", petId);
-        return this.Execute<Pets>(request, cancellationToken);
-    }
-
     public Task<Result> UserById(CancellationToken cancellationToken = default(CancellationToken))
     {
         var request = new HttpRequestMessage(HttpMethod.GET, "/users/{id}");

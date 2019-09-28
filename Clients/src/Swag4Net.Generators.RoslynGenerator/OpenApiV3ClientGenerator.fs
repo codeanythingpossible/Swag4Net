@@ -14,6 +14,10 @@ open System.Collections.Generic
 [<RequireQualifiedAccess>]
 module OpenApiV3ClientGenerator =
 
+  type ResourceProviders =
+    { SchemaProvider : ResourceProvider<Documentation, Schema>
+      ResponseProvider : ResourceProvider<Documentation, Response> }
+
   let getSchema (doc:Documentation) (schema:Schema InlinedOrReferenced) =
     async {
       match schema with
@@ -32,6 +36,29 @@ module OpenApiV3ClientGenerator =
                     | true, n ->
                         match n with
                         | Inlined s -> return Ok (name, s)
+                        | _ -> return Error (sprintf "Cannot find reference %A" ref)
+          | _ -> return Error (sprintf "Cannot find reference %A" ref)
+      | _ -> return Error (sprintf "Cannot find reference %A" ref)
+    }
+
+  let getResponse (doc:Documentation) (query:Response InlinedOrReferenced) =
+    async {
+      match query with
+      | Inlined s -> return Ok s
+      | Referenced (InnerReference ref) ->
+          match Anchor.split ref with
+          | "components" :: "responses" :: name :: _ -> 
+            match doc.Components with
+            | None -> return Error (sprintf "Cannot find reference %A" ref)
+            | Some c ->
+                match c.Responses with
+                | None -> return Error (sprintf "Cannot find reference %A" ref)
+                | Some s -> 
+                    match s.TryGetValue name with
+                    | false, _ -> return Error (sprintf "Cannot find reference %A" ref)
+                    | true, n ->
+                        match n with
+                        | Inlined rs -> return Ok rs
                         | _ -> return Error (sprintf "Cannot find reference %A" ref)
           | _ -> return Error (sprintf "Cannot find reference %A" ref)
       | _ -> return Error (sprintf "Cannot find reference %A" ref)
@@ -228,7 +255,7 @@ module OpenApiV3ClientGenerator =
       return Ok (c, props |> Array.map snd)
     }
 
-  let generateClasses logError doc (schemaProvider:ResourceProvider<Documentation, Schema>) (schemas:(string* Schema InlinedOrReferenced) seq) =
+  let generateClasses logError doc (providers : ResourceProviders) (schemas:(string* Schema InlinedOrReferenced) seq) =
     asyncSeq {
       for k,schema in schemas do
         match schema with
@@ -258,7 +285,7 @@ module OpenApiV3ClientGenerator =
                 | Ok t -> yield schema,t
 
         | Referenced ref ->
-            let! r = ResourceProviderContext.Create doc ref |> schemaProvider
+            let! r = ResourceProviderContext.Create doc ref |> providers.SchemaProvider
             match r with
             | Error e -> logError e
             | Ok content ->
@@ -274,14 +301,14 @@ module OpenApiV3ClientGenerator =
                 | Ok t -> yield schema,t
     }
 
-  let buildSchemasClasses logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) =
+  let buildSchemasClasses logError (settings:GenerationSettings) (doc:Documentation) (providers : ResourceProviders) =
     async {
       let classes = 
         doc.Components
         |> Option.bind (fun c -> c.Schemas)
         |> Option.defaultValue Map.empty
         |> Map.toSeq
-        |> generateClasses logError doc resourceProvider
+        |> generateClasses logError doc providers
         |> AsyncSeq.toArray
 
       let payload (f : KeyValuePair<string, Path> -> Operation option) =
@@ -319,15 +346,15 @@ module OpenApiV3ClientGenerator =
       let routesDtos = 
         payloads
         |> Seq.map (fun v -> nameSchema v.Schema)
-        |> generateClasses logError doc resourceProvider
+        |> generateClasses logError doc providers
         |> AsyncSeq.toArray
 
       return Array.concat [classes; routesDtos] |> dict
     }
 
-  let generateDtos logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) : string =
+  let generateDtos logError (settings:GenerationSettings) (doc:Documentation) (providers : ResourceProviders) : string =
     async {
-      let! builtSchemas = buildSchemasClasses logError settings doc resourceProvider
+      let! builtSchemas = buildSchemasClasses logError settings doc providers
       
       let declaredClasses = 
           builtSchemas.Values
@@ -363,10 +390,11 @@ module OpenApiV3ClientGenerator =
   let isSuccess c =
     c >= 200 && c < 300
 
-  let resolveRouteSuccessReponseType (route:Operation) doc (schemaProvider:ResourceProvider<Documentation, Schema>) =
+  let resolveRouteSuccessReponseType (route:Operation) doc (providers : ResourceProviders) =
     let responses = 
       //route.Responses.Default // TODO: default response
       route.Responses.Responses
+      |> Seq.filter(fun i -> i.Key |> isSuccess)
       |> Seq.choose (
             fun i -> 
               match i.Value with
@@ -380,7 +408,7 @@ module OpenApiV3ClientGenerator =
                           | Inlined schema ->
                               schema |> ComplexType |> rawTypeIdentifier |> Some
                           | Referenced ref ->
-                              let r = ResourceProviderContext.Create doc ref |> schemaProvider |> Async.RunSynchronously
+                              let r = ResourceProviderContext.Create doc ref |> providers.SchemaProvider |> Async.RunSynchronously
                               match r with
                               | Ok schema -> Some schema.Name
                               | Error _ -> None
@@ -388,8 +416,14 @@ module OpenApiV3ClientGenerator =
                   match name with
                   | None -> Some "Nothing"
                   | Some n -> Some n
-              | Referenced _ ->
-                  None //TODO: fetch reference
+              | Referenced ref ->
+                  let getName a = a |> Anchor.split |> List.last |> cleanTypeName |> Some
+                  match ref with
+                  | ExternalUrl (_, Some a) -> getName a
+                  | RelativePath (_, Some a) -> getName a
+                  | InnerReference a -> 
+                      getName a
+                  | _ -> None
         )
       |> Seq.distinct
       |> Seq.toList
@@ -401,10 +435,9 @@ module OpenApiV3ClientGenerator =
     | types ->
         let g = System.String.Join(',', types)
         true,  sprintf "DiscriminatedUnion<%s>" g
-    //false, ""
 
-  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (resourceProvider:ResourceProvider<Documentation, Schema>) (pathParams:Parameter InlinedOrReferenced list) =
-    let discriminated,dtoType = resolveRouteSuccessReponseType route doc resourceProvider
+  let generateRestMethod doc generateBody verb (path:string) (route:Operation) (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (providers : ResourceProviders) (pathParams:Parameter InlinedOrReferenced list) =
+    let discriminated,dtoType = resolveRouteSuccessReponseType route doc providers
     
     let request =
       declareVariableWithValue "request"
@@ -412,6 +445,15 @@ module OpenApiV3ClientGenerator =
            [ memberAccess "HttpMethod" (ucFirst verb)
              literalExpression SyntaxKind.StringLiteralExpression (SyntaxFactory.Literal path) ])
   
+    let (|NameFromRef|_|) ref = 
+      let getName a = 
+        a |> Anchor.split |> List.last |> cleanTypeName  |> Some
+      match ref with
+      | ExternalUrl (_, Some a) -> a |> getName
+      | RelativePath (_, Some a) -> getName a
+      | InnerReference a -> getName a
+      | _ -> None
+
     let types =
       if discriminated
       then
@@ -420,17 +462,20 @@ module OpenApiV3ClientGenerator =
           route.Responses.Responses
             |> Map.toList
             |> List.filter (fun (code,r) -> code |> isSuccess)
-            |> List.choose (
+            |> List.map (
                  fun (code,r) ->
-                  //let t = 
-                  //  match r.Type with
-                  //  | Some t -> rawTypeIdentifier t
-                  //  | None -> "Nothing"
-                  //match r.Code with
-                  //| StatusCode c ->
-                  //    Some ((int c), t)
-                  //| _ -> None
-                  None
+                  match r with
+                  | Inlined rs ->
+                      // TODO: manage multiples mimetypes
+                      // rawTypeIdentifier
+                      let media = rs.Content |> Map.toArray |> Array.map snd |> Array.head
+                      match media.Schema with
+                      | Inlined schema -> 
+                          code, schema.Title
+                      | Referenced (NameFromRef name) -> code, name
+                      | _ -> code, "Nothing"
+                  | Referenced (NameFromRef name) -> code, name
+                  | _ -> code, "Nothing"
               )
             |> List.distinctBy fst
 
@@ -575,7 +620,7 @@ module OpenApiV3ClientGenerator =
     else
       method.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
 
-  let generateClientClass (settings:GenerationSettings) (tag:string option) (doc:Documentation) name (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (resourceProvider:ResourceProvider<Documentation, Schema>) =
+  let generateClientClass (settings:GenerationSettings) (tag:string option) (doc:Documentation) name (builtSchemas:IDictionary<Schema, ClassDeclarationSyntax>) (providers : ResourceProviders) =
     let constructors =
       [|
         callBaseConstructor "baseUrl" "string" name
@@ -608,7 +653,7 @@ module OpenApiV3ClientGenerator =
               )
     let methods =
       operations
-      |> Seq.map (fun (path,verb,operation,pathParams) -> generateRestMethod doc true verb path operation builtSchemas resourceProvider pathParams)
+      |> Seq.map (fun (path,verb,operation,pathParams) -> generateRestMethod doc true verb path operation builtSchemas providers pathParams)
       |> Seq.cast<MemberDeclarationSyntax>
       |> Seq.toArray
 
@@ -643,9 +688,9 @@ module OpenApiV3ClientGenerator =
       .AddMembers(methods)
     
 
-  let generateClientsClasses (settings:GenerationSettings) (doc:Documentation) name logError (resourceProvider:ResourceProvider<Documentation, Schema>) =
+  let generateClientsClasses (settings:GenerationSettings) (doc:Documentation) name logError (providers : ResourceProviders) =
     async {
-      let! builtSchemas = buildSchemasClasses logError settings doc resourceProvider
+      let! builtSchemas = buildSchemasClasses logError settings doc providers
 
       let routes = doc.Paths |> Map.toList
     
@@ -657,7 +702,7 @@ module OpenApiV3ClientGenerator =
         |> List.collect (
                fun tag ->
                  let className = cleanTypeName <| sprintf "%s%s" tag name
-                 let c = generateClientClass settings (Some tag) doc className builtSchemas resourceProvider
+                 let c = generateClientClass settings (Some tag) doc className builtSchemas providers
                  let i = extractInterface c
                  [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
              )
@@ -665,7 +710,7 @@ module OpenApiV3ClientGenerator =
       let createNotTaggedClients (fs : (Path -> Operation option) list) =
 
         let className = cleanTypeName name
-        let c = generateClientClass settings None doc className builtSchemas resourceProvider
+        let c = generateClientClass settings None doc className builtSchemas providers
         let i = extractInterface c
         [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
 
@@ -697,10 +742,10 @@ module OpenApiV3ClientGenerator =
                   .AddMembers(clientNotTagged @ clients |> List.toArray)
       return code
     }
-
-  let generateClients logError (settings:GenerationSettings) (doc:Documentation) (resourceProvider:ResourceProvider<Documentation, Schema>) name : string =
+    
+  let generateClients logError (settings:GenerationSettings) (doc:Documentation) (providers : ResourceProviders) name : string =
     async {
-      let! ns = generateClientsClasses settings doc (ucFirst name) logError resourceProvider
+      let! ns = generateClientsClasses settings doc (ucFirst name) logError providers
       let syntaxFactory =
         SyntaxFactory.CompilationUnit()
         |> addUsings [

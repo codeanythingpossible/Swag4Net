@@ -41,6 +41,76 @@ let getRawSpec (path:string) =
   with | _ -> 
     path |> Path.GetFullPath |> File.ReadAllText
 
+module Loaders =
+  let loadOpenApiComponent<'t> (http:HttpClient) kind (mapper:string -> OpenApiSpecification.Components -> 't InlinedOrReferenced option) (ctx:ResourceProviderContext<OpenApiSpecification.Documentation>) =
+    match ctx.Reference with
+    | ExternalUrl(uri, a) ->
+      async {
+          let! content = uri |> http.GetStringAsync |> Async.AwaitTask
+          let v = content |> SwaggerParser.loadDocument
+          let name =
+            match a with
+            | Some (Anchor l) -> SwaggerParser.resolveRefName l
+            | _ -> uri.Segments |> Seq.last
+          //return Ok { Name=name; Content=v }
+          return Error "not impl"
+      }
+     | RelativePath(p, a) ->
+      async {
+          let content = File.ReadAllText p
+          let v = content |> SwaggerParser.loadDocument
+          let name =
+            match a with
+            | Some (Anchor l) -> SwaggerParser.resolveRefName l
+            | _ -> SwaggerParser.resolveRefName p
+          //return Ok { Name=name; Content=v }
+          return Error "not impl"
+      }
+     | InnerReference (Anchor a) -> 
+      async {
+          match a.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> Array.toList with
+          | "components" :: k :: [name] when k = kind ->
+              let c =
+                ctx.Document.Components
+                |> Option.bind (mapper name)
+              return
+                match c with
+                | None -> Error "path not found"
+                | Some (Inlined v) -> 
+                    Ok { Name=name; Content=v }
+                | Some (Referenced _) -> 
+                    Error "referenced schema are not allowed during reference resolution"
+
+          | _ -> return Error "path not found"
+      }
+
+  let loadOpenApiSchema http : ResourceProvider<OpenApiSpecification.Documentation, OpenApiSpecification.Schema> =
+    fun ctx ->
+      let mapper : string -> OpenApiSpecification.Components -> OpenApiSpecification.Schema InlinedOrReferenced option = 
+        fun name c ->
+          c.Schemas
+          |> Option.bind (
+            fun s -> 
+              match s.TryGetValue name with
+              | false,_ -> None
+              | true,s -> Some s
+            )
+      loadOpenApiComponent<OpenApiSpecification.Schema> http "schemas" mapper ctx
+
+  let loadOpenApiResponse http : ResourceProvider<OpenApiSpecification.Documentation, OpenApiSpecification.Response> =
+    fun ctx ->
+      let mapper : string -> OpenApiSpecification.Components -> OpenApiSpecification.Response InlinedOrReferenced option = 
+        fun name c ->
+          c.Responses
+          |> Option.bind (
+            fun s -> 
+              match s.TryGetValue name with
+              | false,_ -> None
+              | true,s -> Some s
+            )
+      loadOpenApiComponent<OpenApiSpecification.Response> http "responses" mapper ctx
+
+
 [<EntryPoint>]
 let main argv =
   
@@ -89,56 +159,11 @@ let main argv =
                     Ok { Name=name; Content=v }
           }
 
-    let loadOpenApiSchema : ResourceProvider<OpenApiSpecification.Documentation, OpenApiSpecification.Schema> =
-      fun ctx ->
-        match ctx.Reference with
-        | ExternalUrl(uri, a) ->
-          async {
-              let! content = uri |> http.GetStringAsync |> Async.AwaitTask
-              let v = content |> SwaggerParser.loadDocument
-              let name =
-                match a with
-                | Some (Anchor l) -> SwaggerParser.resolveRefName l
-                | _ -> uri.Segments |> Seq.last
-              //return Ok { Name=name; Content=v }
-              return Error "not impl"
-          }
-         | RelativePath(p, a) ->
-          async {
-              let content = File.ReadAllText p
-              let v = content |> SwaggerParser.loadDocument
-              let name =
-                match a with
-                | Some (Anchor l) -> SwaggerParser.resolveRefName l
-                | _ -> SwaggerParser.resolveRefName p
-              //return Ok { Name=name; Content=v }
-              return Error "not impl"
-          }
-         | InnerReference (Anchor a) -> 
-          async {
-              match a.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> Array.toList with
-              | "components" :: "schemas" :: [name] ->
-                  let c =
-                    ctx.Document.Components
-                    |> Option.bind (fun c -> c.Schemas)
-                    |> Option.bind (
-                        fun s -> 
-                          match s.TryGetValue name with
-                          | false,_ -> None
-                          | true,s -> Some s
-                        )
-                  return
-                    match c with
-                    | None -> Error "path not found"
-                    | Some (Inlined v) -> 
-                        Ok { Name=name; Content=v }
-                    | Some (Referenced _) -> 
-                        Error "referenced schema are not allowed during reference resolution"
-
-              | _ -> return Error "path not found"
-          }
-
     let logger = printfn "- %s"
+
+    let providers : OpenApiV3ClientGenerator.ResourceProviders =
+      { SchemaProvider = Loaders.loadOpenApiSchema http
+        ResponseProvider = Loaders.loadOpenApiResponse http }
 
     match specFile |> getRawSpec |> Parser.parse loadSwaggerReference with
     | Ok doc ->  
@@ -151,8 +176,8 @@ let main argv =
               SwaggerClientGenerator.generateClients settings spec clientName,
               SwaggerClientGenerator.generateDtos settings spec.Definitions
           | Parser.OpenApi spec ->
-              OpenApiV3ClientGenerator.generateClients logger settings spec loadOpenApiSchema clientName,
-              OpenApiV3ClientGenerator.generateDtos logger settings spec loadOpenApiSchema
+              OpenApiV3ClientGenerator.generateClients logger settings spec providers clientName,
+              OpenApiV3ClientGenerator.generateDtos logger settings spec providers
         
         outputFolder |> Directory.CreateDirectory |> ignore
     
