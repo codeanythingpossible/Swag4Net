@@ -140,7 +140,7 @@ module OpenApiV3ClientGenerator =
             match dataType with
             | DataType.String (Some StringFormat.Date) -> "DateTime"
             | DataType.String (Some StringFormat.DateTime) -> "DateTime"
-            | DataType.String (Some StringFormat.Base64Encoded) -> "string" //TODO: create a base64 string type
+            | DataType.String (Some StringFormat.Base64Encoded) -> "string"
             | DataType.String (Some StringFormat.Binary) -> "byte[]"
             | DataType.String (Some StringFormat.Password) -> "string"
             | DataType.String _ -> "string"
@@ -149,8 +149,10 @@ module OpenApiV3ClientGenerator =
             | DataType.Integer64 -> "long"
             | DataType.Boolean -> "bool"
             | DataType.Array (Inlined s) -> s |> getTypeName |> sprintf "IEnumerable<%s>"
-            | DataType.Array (Referenced r) -> "object"
-            | DataType.Object -> "object"
+            | DataType.Array (Referenced r) -> 
+                "object"
+            | DataType.Object -> 
+                "object"
         | ComplexType s -> s.Type
     source |> getTypeName |> SyntaxFactory.ParseTypeName
 
@@ -304,13 +306,35 @@ module OpenApiV3ClientGenerator =
 
   let buildSchemasClasses logError (settings:GenerationSettings) (doc:Documentation) (providers : ResourceProviders) =
     async {
-      let classes = 
+      let schemas = 
         doc.Components
         |> Option.bind (fun c -> c.Schemas)
         |> Option.defaultValue Map.empty
         |> Map.toSeq
         |> generateClasses logError doc providers
-        |> AsyncSeq.toArray
+        |> AsyncSeq.toList
+
+      let responses = 
+        asyncSeq {
+          let tasks = 
+            doc.Components
+            |> Option.bind (fun c -> c.Responses)
+            |> Option.defaultValue Map.empty
+            |> Map.toSeq
+            |> Seq.map (fun (k,v) -> k, getResponse doc v)
+          
+          for (name,t) in tasks do
+            let! r = t
+            match r with
+            | Error e -> logError e
+            | Ok rs -> 
+              for (_,v) in rs.Content |> Map.toSeq do
+                yield name,v.Schema
+        } |> AsyncSeq.toBlockingSeq
+          |> generateClasses logError doc providers
+          |> AsyncSeq.toList
+
+      let classes = schemas @ responses |> List.toArray
 
       let payload (f : KeyValuePair<string, Path> -> Operation option) =
         let rq = 
@@ -384,7 +408,7 @@ module OpenApiV3ClientGenerator =
         | DataType.Integer64 -> "long"
         | DataType.Boolean -> "bool"
         | DataType.Array (Inlined propType) -> propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
-        | DataType.Array (Referenced _) -> "object"
+        | DataType.Array (Referenced ref) -> "object"
         | DataType.Object -> "object"
     | ComplexType s -> s.Title
 
@@ -496,8 +520,8 @@ module OpenApiV3ClientGenerator =
       else []
       
     let callQueryParam (param:Parameter) =
-      let name = param.Name
-      let varName = identifierName param.Name
+      let name = param.Name |> cleanVarName
+      let varName = identifierName name
       let methodName = (* if param.ParamType.IsArray() then "AddQueryParameters" else *) "AddQueryParameter"
       SyntaxFactory.ExpressionStatement(
         memberAccess "base" methodName
@@ -509,8 +533,8 @@ module OpenApiV3ClientGenerator =
         )
 
     let callParamMethodName methodName (p:Parameter) =
-      let name = p.Name
-      let varName = identifierName p.Name
+      let name = p.Name |> cleanVarName
+      let varName = identifierName name
       SyntaxFactory.ExpressionStatement(
         memberAccess "base" methodName
           |> invokeMember [
@@ -676,6 +700,22 @@ module OpenApiV3ClientGenerator =
           .AddMembers(constructors)
           .AddMembers(methods)
 
+  let isEmptyClass (c:ClassDeclarationSyntax) =
+      c.Members
+      |> Seq.choose (
+          function
+          | :? MethodDeclarationSyntax as m when m.Modifiers |> Seq.exists(fun t -> t.IsKind SyntaxKind.PublicKeyword) -> 
+              SyntaxFactory
+                .MethodDeclaration(m.ReturnType, m.Identifier)
+                .WithConstraintClauses(m.ConstraintClauses)
+                .WithParameterList(m.ParameterList)
+                .WithSemicolonToken(SyntaxFactory.Token SyntaxKind.SemicolonToken)
+              |> Some
+          | _ -> None
+        )
+      |> Seq.cast<MemberDeclarationSyntax>
+      |> Seq.isEmpty
+
   let extractInterface (c:ClassDeclarationSyntax) =
     let methods = 
       c.Members
@@ -718,12 +758,16 @@ module OpenApiV3ClientGenerator =
                  [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
              )
 
-      let createNotTaggedClients (fs : (Path -> Operation option) list) =
+      let createNotTaggedClients () =
 
         let className = cleanTypeName name
         let c = generateClientClass settings None doc className builtSchemas providers
-        let i = extractInterface c
-        [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
+        if isEmptyClass c
+        then
+          List.empty
+        else
+          let i = extractInterface c
+          [c:> MemberDeclarationSyntax; i:> MemberDeclarationSyntax]
 
       let clients =
         createTaggedClients [
@@ -736,16 +780,7 @@ module OpenApiV3ClientGenerator =
           fun p -> p.Options
         ]
         
-      let clientNotTagged =
-        createNotTaggedClients [
-          fun p -> p.Get
-          fun p -> p.Post
-          fun p -> p.Delete
-          fun p -> p.Head
-          fun p -> p.Put
-          fun p -> p.Patch
-          fun p -> p.Options
-        ]
+      let clientNotTagged = createNotTaggedClients ()
 
       let code = SyntaxFactory
                   .NamespaceDeclaration(parseName settings.Namespace)
