@@ -99,7 +99,6 @@ module OpenApiV3ClientGenerator =
         | "string", Some "binary" -> return DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
         | "string", _ -> return DataType.String None |> PrimaryType |> Ok
         | "boolean", _ -> return DataType.Boolean |> PrimaryType |> Ok
-        | "object", _ -> return DataType.Object |> PrimaryType |> Ok
         | "array",_ -> 
             match schema.Items with
             | None ->
@@ -124,6 +123,9 @@ module OpenApiV3ClientGenerator =
                             |> PrimaryType
                           )
                 | Error e -> return Error e
+        | "object", _ ->
+            // TODO: complex type
+            return DataType.Object |> PrimaryType |> Ok
         | _ -> 
             let message = 
               match schema.Format with
@@ -618,6 +620,7 @@ module OpenApiV3ClientGenerator =
       | Some (Inlined s) ->
           match toDataTypeDescription doc s |> Async.RunSynchronously with
           | Ok r ->
+              
               (parameterNamed p.Name).WithType(getClrType r) |> Some
           | Error e -> None
       | _ -> None
