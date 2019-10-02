@@ -239,3 +239,40 @@ module OpenApiSpecification =
       Prefix: string option
       Attribute: bool option
       Wrapped: bool option }
+
+  module Schema =
+    let Empty =
+      {
+        Title=System.String.Empty
+        Type=System.String.Empty
+        AllOf=None
+        OneOf=None
+        AnyOf=None
+        Not=None
+        MultipleOf=None
+        Items=None
+        Maximum=None
+        ExclusiveMaximum=None
+        Minimum=None
+        ExclusiveMinimum=None
+        MaxLength=None
+        MinLength=None
+        Pattern=None
+        MaxItems=None
+        MinItems=None
+        UniqueItems=None
+        MaxProperties=None
+        MinProperties=None
+        Properties=None
+        AdditionalProperties=None
+        Required=None
+        Nullable=false
+        Enum=None
+        Format=None
+        Discriminator=None
+        Readonly=false
+        WriteOnly=false
+        Xml=None
+        ExternalDocs=None
+        Example=None
+        Deprecated=false }

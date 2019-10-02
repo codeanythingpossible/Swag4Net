@@ -85,53 +85,71 @@ module OpenApiV3ClientGenerator =
     | Inlined v ->
         v.Title, s
 
-  let toDataTypeDescription doc (source:Schema) =
+  let (|AnyOf|_|) (schema:Schema) =
+    match schema.AnyOf with
+    | Some anyOf -> Some anyOf
+    | None -> None
+
+  let rec toDataTypeDescription argName doc (source:Schema) =
     let rec transorm (schema:Schema) =
       async {
-        match schema.Type, schema.Format with
-        | "integer", None -> return DataType.Integer |> PrimaryType |> Ok
-        | "integer", Some "int32" -> return DataType.Integer |> PrimaryType |> Ok
-        | "integer", Some "int64" -> return DataType.Integer64 |> PrimaryType |> Ok
-        | "string", Some "date-time" -> return DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Ok
-        | "string", Some "date" -> return DataType.String (Some StringFormat.Date) |> PrimaryType |> Ok
-        | "string", Some "password" -> return DataType.String (Some StringFormat.Password) |> PrimaryType |> Ok
-        | "string", Some "byte" -> return DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Ok
-        | "string", Some "binary" -> return DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
-        | "string", _ -> return DataType.String None |> PrimaryType |> Ok
-        | "boolean", _ -> return DataType.Boolean |> PrimaryType |> Ok
-        | "array",_ -> 
-            match schema.Items with
-            | None ->
-              return 
-                DataType.Object
-                |> PrimaryType
-                |> Inlined
-                |> DataType<Schema>.Array
-                |> PrimaryType
-                |> Ok
-            | Some ref -> 
-                let! s = getSchema doc ref
-                match s with
-                | Ok (_,s) ->
-                    let! r = transorm s
-                    return 
-                      r |> Result.map (
-                          fun i ->
-                            i
-                            |> Inlined
-                            |> DataType<Schema>.Array
-                            |> PrimaryType
-                          )
-                | Error e -> return Error e
-        | "object", _ ->
-            // TODO: complex type
-            return DataType.Object |> PrimaryType |> Ok
-        | _ -> 
-            let message = 
-              match schema.Format with
-              | None -> sprintf "cannot reconize type '%s'" schema.Type
-              | Some format -> sprintf "cannot reconize type '%s' with format '%s'" schema.Type format
-            return Error message
+        match schema with
+        | AnyOf anyOf -> 
+            let props = 
+              anyOf
+              |> List.choose (
+                  function 
+                  | Referenced ref as s -> 
+                      ref |> ReferencePath.getAnchorName |> Option.map (fun n -> cleanTypeName n , s)
+                  | _ -> None )
+              |> Map
+              |> Some
+            let typeName = sprintf "%s%sAnyOf" schema.Type argName
+            return { Schema.Empty with Properties=props; Type=typeName } |> ComplexType |> Ok
+        | _ ->
+            match schema.Type, schema.Format with
+            | "integer", None -> return DataType.Integer |> PrimaryType |> Ok
+            | "integer", Some "int32" -> return DataType.Integer |> PrimaryType |> Ok
+            | "integer", Some "int64" -> return DataType.Integer64 |> PrimaryType |> Ok
+            | "string", Some "date-time" -> return DataType.String (Some StringFormat.DateTime) |> PrimaryType |> Ok
+            | "string", Some "date" -> return DataType.String (Some StringFormat.Date) |> PrimaryType |> Ok
+            | "string", Some "password" -> return DataType.String (Some StringFormat.Password) |> PrimaryType |> Ok
+            | "string", Some "byte" -> return DataType.String (Some StringFormat.Base64Encoded) |> PrimaryType |> Ok
+            | "string", Some "binary" -> return DataType.String (Some StringFormat.Binary) |> PrimaryType |> Ok
+            | "string", _ -> return DataType.String None |> PrimaryType |> Ok
+            | "boolean", _ -> return DataType.Boolean |> PrimaryType |> Ok
+            | "array",_ -> 
+                match schema.Items with
+                | None ->
+                  return 
+                    DataType.Object
+                    |> PrimaryType
+                    |> Inlined
+                    |> DataType<Schema>.Array
+                    |> PrimaryType
+                    |> Ok
+                | Some ref -> 
+                    let! s = getSchema doc ref
+                    match s with
+                    | Ok (_,s) ->
+                        let! r = transorm s
+                        return 
+                          r |> Result.map (
+                              fun i ->
+                                i
+                                |> Inlined
+                                |> DataType<Schema>.Array
+                                |> PrimaryType
+                              )
+                    | Error e -> return Error e
+            | "object", _ ->
+                return schema |> ComplexType |> Ok
+            | _ -> 
+                let message = 
+                  match schema.Format with
+                  | None -> sprintf "cannot reconize type '%s'" schema.Type
+                  | Some format -> sprintf "cannot reconize type '%s' with format '%s'" schema.Type format
+                return Error message
       }
     transorm source
 
@@ -151,10 +169,8 @@ module OpenApiV3ClientGenerator =
             | DataType.Integer64 -> "long"
             | DataType.Boolean -> "bool"
             | DataType.Array (Inlined s) -> s |> getTypeName |> sprintf "IEnumerable<%s>"
-            | DataType.Array (Referenced r) -> 
-                "object"
-            | DataType.Object -> 
-                "object"
+            | DataType.Array (Referenced r) -> "object"
+            | DataType.Object -> "object"
         | ComplexType s -> s.Type
     source |> getTypeName |> SyntaxFactory.ParseTypeName
 
@@ -167,15 +183,17 @@ module OpenApiV3ClientGenerator =
       
       let members = 
         asyncSeq {
-          for (name,ps) in props do
+          for (pName,ps) in props do
             let! ps = ps |> getSchema doc
             match ps with
             | Ok (_,v) -> 
-              let! typ = toDataTypeDescription doc v
+              let n = sprintf "%s%s" (cleanTypeName name) (cleanTypeName pName)
+              let! typ = toDataTypeDescription n doc v
+              // TODO: generate code of AnyOf
               match typ with
               | Ok typ ->
                   let clrType = getClrType typ
-                  yield autoProperty clrType name :> MemberDeclarationSyntax
+                  yield autoProperty clrType pName :> MemberDeclarationSyntax
               | Error e -> logError e
             | Error e -> logError e
         } |> AsyncSeq.toArray
@@ -187,7 +205,7 @@ module OpenApiV3ClientGenerator =
           let! items = items |> getSchema doc
           match items with
           | Error e -> return Error e
-          | Ok (name,_) ->
+          | Ok (name, s) ->
               let clr = SyntaxFactory.ParseTypeName (if System.String.IsNullOrWhiteSpace name then "object" else name)
               let enumerable = SyntaxFactory.GenericName(SyntaxFactory.Identifier "IEnumerable")
               return Ok (code.AddBaseListTypes(SyntaxFactory.SimpleBaseType (enumerable.AddTypeArgumentListArguments clr)))
@@ -444,13 +462,7 @@ module OpenApiV3ClientGenerator =
                   | None -> Some "Nothing"
                   | Some n -> Some n
               | Referenced ref ->
-                  let getName a = a |> Anchor.split |> List.last |> cleanTypeName |> Some
-                  match ref with
-                  | ExternalUrl (_, Some a) -> getName a
-                  | RelativePath (_, Some a) -> getName a
-                  | InnerReference a -> 
-                      getName a
-                  | _ -> None
+                  ref |> ReferencePath.getAnchorName |> Option.map cleanTypeName
         )
       |> Seq.distinct
       |> Seq.toList
@@ -618,7 +630,7 @@ module OpenApiV3ClientGenerator =
           let c = builtSchemas.Item s
           (parameterNamed p.Name).WithType(c.Identifier.ValueText |> parseTypeName) |> Some
       | Some (Inlined s) ->
-          match toDataTypeDescription doc s |> Async.RunSynchronously with
+          match toDataTypeDescription p.Name doc s |> Async.RunSynchronously with
           | Ok r ->
               
               (parameterNamed p.Name).WithType(getClrType r) |> Some

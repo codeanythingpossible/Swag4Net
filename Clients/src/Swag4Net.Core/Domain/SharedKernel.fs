@@ -17,8 +17,10 @@ module SharedKernel =
       | ExternalUrl of Uri * Anchor option
       | RelativePath of string * Anchor option
       | InnerReference of Anchor
+  
   [<RequireQualifiedAccess>]
   module ReferencePath = 
+
     let parseReference (ref:string) : Result<ReferencePath, string> =
       match ref with
       | _ when String.IsNullOrWhiteSpace ref ->
@@ -35,6 +37,15 @@ module SharedKernel =
           | i -> 
             let a = ref.Substring i
             RelativePath(ref, Some (Anchor a)) |> Ok
+
+    let getAnchorName ref =
+      let getName a = a |> Anchor.split |> List.last |> Some
+      match ref with
+      | ExternalUrl (_, Some a) -> getName a
+      | RelativePath (_, Some a) -> getName a
+      | InnerReference a -> 
+          getName a
+      | _ -> None
 
   type InlinedOrReferenced<'a> =
      | Inlined of 'a
