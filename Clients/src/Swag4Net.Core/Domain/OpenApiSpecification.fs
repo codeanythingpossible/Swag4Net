@@ -113,7 +113,7 @@ module OpenApiSpecification =
       Examples: Map<string, Example InlinedOrReferenced>
       Encoding: Map<string, Encoding> }
   and Schema =
-    {
+    { Name: string
       Title: string
       Type: string
       AllOf: Schema InlinedOrReferenced list option
@@ -240,9 +240,12 @@ module OpenApiSpecification =
       Attribute: bool option
       Wrapped: bool option }
 
+  [<RequireQualifiedAccess>]
   module Schema =
+    
     let Empty =
       {
+        Name=System.String.Empty
         Title=System.String.Empty
         Type=System.String.Empty
         AllOf=None
@@ -276,3 +279,8 @@ module OpenApiSpecification =
         ExternalDocs=None
         Example=None
         Deprecated=false }
+    
+    let named name (s:Schema) =
+      if System.String.IsNullOrWhiteSpace s.Name
+      then { s with Name = name }
+      else s

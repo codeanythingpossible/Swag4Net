@@ -180,6 +180,7 @@ module OpenApiV3ClientGenerator =
         schema.Properties
         |> Option.defaultValue Map.empty
         |> Map.toSeq
+      let tn = cleanTypeName name
       
       let members = 
         asyncSeq {
@@ -187,7 +188,7 @@ module OpenApiV3ClientGenerator =
             let! ps = ps |> getSchema doc
             match ps with
             | Ok (_,v) -> 
-              let n = sprintf "%s%s" (cleanTypeName name) (cleanTypeName pName)
+              let n = sprintf "%s%s" tn (cleanTypeName pName)
               let! typ = toDataTypeDescription n doc v
               // TODO: generate code of AnyOf
               match typ with
@@ -198,7 +199,7 @@ module OpenApiV3ClientGenerator =
             | Error e -> logError e
         } |> AsyncSeq.toArray
 
-      let code = publicClass (cleanTypeName name) members
+      let code = publicClass tn members
 
       match schema.Type, schema.Items with
       | "array", Some items ->
@@ -278,34 +279,33 @@ module OpenApiV3ClientGenerator =
       return Ok (c, props |> Array.map snd)
     }
 
-  let generateClasses logError doc (providers : ResourceProviders) (schemas:(string* Schema InlinedOrReferenced) seq) =
+  let generateClasses logError doc (providers : ResourceProviders) (schemas:(string * Schema InlinedOrReferenced) seq) =
     asyncSeq {
       for k,schema in schemas do
         match schema with
         | Inlined schema ->
-
             match schema.OneOf, schema.AnyOf with
             | Some oneOf, _ -> 
                 let! r = generateOneOf logError doc k oneOf
                 match r with
                 | Error e -> logError e
                 | Ok (t,ts) ->
-                    yield schema,t
+                    yield schema |> Schema.named k , t
                     for t in ts do
-                      yield schema,t
+                      yield schema |> Schema.named k , t
             | _, Some anyOf -> 
               let! r = generateAnyOf logError doc k anyOf
               match r with
               | Error e -> logError e
               | Ok (t,ts) ->
-                  yield schema,t
+                  yield schema |> Schema.named k , t
                   for t in ts do
-                    yield schema,t
+                    yield schema |> Schema.named k , t
             | None, None -> 
                 let! r = generateBasicDto logError doc k schema
                 match r with
                 | Error e -> logError e
-                | Ok t -> yield schema,t
+                | Ok t -> yield schema |> Schema.named k , t
 
         | Referenced ref ->
             let! r = ResourceProviderContext.Create doc ref |> providers.SchemaProvider
@@ -321,7 +321,7 @@ module OpenApiV3ClientGenerator =
                 let! c = generateBasicDto logError doc k schema
                 match c with
                 | Error e -> logError e
-                | Ok t -> yield schema,t
+                | Ok t -> yield schema |> Schema.named k , t
     }
 
   let buildSchemasClasses logError (settings:GenerationSettings) (doc:Documentation) (providers : ResourceProviders) =
@@ -394,7 +394,7 @@ module OpenApiV3ClientGenerator =
         |> generateClasses logError doc providers
         |> AsyncSeq.toArray
 
-      return Array.concat [classes; routesDtos] |> dict
+      return [classes; routesDtos] |> Array.concat |> dict
     }
 
   let generateDtos logError (settings:GenerationSettings) (doc:Documentation) (providers : ResourceProviders) : string =
@@ -752,7 +752,6 @@ module OpenApiV3ClientGenerator =
       .InterfaceDeclaration(interfaceName)
       .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token SyntaxKind.PublicKeyword))
       .AddMembers(methods)
-    
 
   let generateClientsClasses (settings:GenerationSettings) (doc:Documentation) name logError (providers : ResourceProviders) =
     async {

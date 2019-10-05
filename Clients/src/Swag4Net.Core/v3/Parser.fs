@@ -245,7 +245,8 @@ let rec parseSchema node =
               let title = o |> readStringOption "title"
 
               return 
-                 { Title = title |> Option.defaultValue ""
+                 { Name = ""
+                   Title = title |> Option.defaultValue ""
                    Type = typ
                    AllOf = allOf
                    OneOf = oneOf
