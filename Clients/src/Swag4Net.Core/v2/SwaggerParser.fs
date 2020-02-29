@@ -1,58 +1,20 @@
-namespace Swag4Net.Core
+﻿namespace Swag4Net.Core.v2
 
-//https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#parameterIn
-//https://swagger.io/docs/specification/data-models/data-types/
+module SwaggerParser =
 
-open Models
-open System
-open System.IO
-open Document
+  open System
+  open Swag4Net.Core
+  open Document
+  open Swag4Net.Core.Domain
+  open SharedKernel
+  open SwaggerSpecification
 
-module DocumentModel =
-
-  type Anchor = Anchor of string
- 
-  type ReferencePath =
-      | ExternalUrl of Uri * Anchor option
-      | RelativePath of string * Anchor option
-      | InnerReference of Anchor
-
-[<RequireQualifiedAccess>]
-module SpecParser =
-
-  open DocumentModel
-
-  type ResourceProvider = ResourceProviderContext -> Result<ReferenceContent, string> Async
-  and ResourceProviderContext = 
-    { Document:Value
-      Reference:ReferencePath }
-  and ReferenceContent =
-    { Name:string
-      Content:Value }
-
-  let parseReference (ref:string) : Result<ReferencePath, string> =
-    match ref with
-    | _ when String.IsNullOrWhiteSpace ref ->
-        Error "ref cannot be empty"
-    | _ when ref.StartsWith "#" ->
-        ref.Substring 1 |> Anchor |> InnerReference |> Ok
-    | _ when Uri.IsWellFormedUriString(ref, UriKind.Absolute) ->
-        let uri = Uri ref
-        let a = if String.IsNullOrWhiteSpace uri.Fragment then None else Some(Anchor uri.Fragment)
-        ExternalUrl(Uri uri.AbsoluteUri, a) |> Ok
-    | _ -> 
-        match ref.IndexOf '#' with
-        | -1 -> RelativePath(ref, None) |> Ok
-        | i -> 
-          let a = ref.Substring i
-          RelativePath(ref, Some (Anchor a)) |> Ok
-
-  let readString name (token:Value) =
+  let private readString name (token:Value) =
     match token |> selectToken name with
     | Some (RawValue v) -> string v
     | _ -> String.Empty // TODO: check format
 
-  let readBool name (token:Value) =
+  let private readBool name (token:Value) =
     match token |> selectToken name with
     | Some (RawValue v) ->
         match v with
@@ -61,44 +23,18 @@ module SpecParser =
         | _ -> false // TODO: check format
     | _ -> false // TODO: check format
 
-  let resolveRefName (path:string) =
-    path.Split '/' |> Seq.last
-
-  let readRefItem (provider:ResourceProvider) (doc:Value) rp =
+  let private readRefItem (provider:ResourceProvider<Value,Value>) (doc:Value) rp =
     match rp with
     | Ok p ->
         { Document=doc; Reference=p } |> provider
     | Error e -> async { return Error e }
 
-  let getRefItem provider doc (path:string) =
-    path
-    |> parseReference
-    |> readRefItem provider doc
-    
-  let (|IsRawValue|_|) (v:'t) =
-    function
-    | RawValue o ->
-        match o with
-        | :? 't as rv when rv = v -> Some ()
-        | _ -> None
-    | _ -> None
-    
-  let parseParameterLocation (v:Value) =
-    match v with
-    | IsRawValue "body" -> Ok InBody
-    | IsRawValue "cookie" -> Ok InCookie
-    | IsRawValue "header" -> Ok InHeader
-    | IsRawValue "path" -> Ok InPath
-    | IsRawValue "query" -> Ok InQuery
-    | IsRawValue "formData" -> Ok InFormData
-    | s -> Error <| sprintf "Not supported parameter location '%A'" s
+  let private parseParameterLocation' (v:Value option) =
+    v |> Option.map Helpers.readParameterLocation
 
-  let parseParameterLocation' (v:Value option) =
-    v |> Option.map parseParameterLocation
-  
-  type DataTypeProvider = Value -> Result<DataTypeDescription,string>
+  type DataTypeProvider = Value -> Result<DataTypeDescription<Schema>,string>
 
-  let parseSchema (parseDataType:DataTypeProvider) (d:Value) name =
+  let private parseSchema (parseDataType:DataTypeProvider) (d:Value) name =
     match d |> selectToken "properties" with
     | Some (SObject o) ->
         let properties =
@@ -130,13 +66,16 @@ module SpecParser =
              Properties=properties }
     | _ -> Error (sprintf "invalid properties for schema %s" name)
 
-  let rec parseDataType (spec:Value) provider (o:Value) =
-    
+  let resolveRefName (path:string) =
+    path.Split '/' |> Seq.last
+
+  let rec parseDataType (spec:Value) provider (o:Value) : Result<DataTypeDescription<Schema>,string> =
+
     let (|Ref|_|) (token:Value) =
       match token |> readString "$ref" with
       | r when System.String.IsNullOrWhiteSpace r -> None
-      | r -> r |> parseReference |> Some
-    
+      | r -> r |> ReferencePath.parseReference |> Some
+
     let (|IsType|_|) name (token:Value) =
       match token |> readString "type" with
       | s when s.Equals(name, StringComparison.InvariantCultureIgnoreCase) -> Some ()
@@ -146,7 +85,7 @@ module SpecParser =
       match token |> readString "format" with
       | s when s.Equals(name, StringComparison.InvariantCultureIgnoreCase) -> Some ()
       | _ -> None
-    
+
     match o with
     | IsType "integer" & IsFormat "int32" -> DataType.Integer |> PrimaryType |> Ok
     | IsType "integer" & IsFormat "int64" -> DataType.Integer64 |> PrimaryType |> Ok
@@ -160,7 +99,7 @@ module SpecParser =
     | IsType "array" -> 
         match o |> selectToken "items" with
         | None -> Error "Could not resolve array items"
-        | Some v -> v |> parseDataType spec provider |> Result.map (DataType.Array >> PrimaryType)
+        | Some v -> v |> parseDataType spec provider |> Result.map (fun o -> DataType<Schema>.Array (Inlined o) |> PrimaryType)
     | Ref ref -> 
         let r = 
           ref 
@@ -172,6 +111,40 @@ module SpecParser =
             parseSchema provider c.Content c.Name |> Result.map ComplexType
         | Error e -> Error e
     | a -> Error "Could not resolve data type"
+
+  let private readStringList =
+    function
+    | Some (SCollection values) ->
+        values
+        |> List.choose (
+             function
+             | RawValue v when isNull v -> None
+             | RawValue v -> Some (string v)
+             | _ -> None
+             )
+    | _ -> []
+
+  let private readLicense =
+    Option.map (
+      fun v ->
+        { Name = readString "name" v
+          Url = readString "url" v }
+      )
+
+  let private parseInfos model =
+    let contact = model |> readString "info.contact.email"
+    let license = model |> selectToken "info.license" |> readLicense
+    { Description = model |> readString "info.description"
+      Version = model |> readString "info.version"
+      Title = model |> readString "info.title"
+      TermsOfService = model |> readString "info.termsOfService"
+      Contact = Some (Email contact)
+      License = license }
+
+  let private isJson (content:string) =
+    if content |> String.IsNullOrWhiteSpace |> not
+    then content.TrimStart().StartsWith "{"
+    else false
 
   let parseSchemas (spec:Value) http (SObject o) =
     o
@@ -219,26 +192,25 @@ module SpecParser =
           ) |> Seq.toList
     | _ -> []
 
-  let parseParameter (spec:Value) http (props:SProperty list) =
-    let c = SObject props
+  let parseParameter (spec:Value) http (node:Value) =
     let typ =
-      match c |> selectToken "schema" with
-      | None -> parseDataType spec http c
+      match node |> selectToken "schema" with
+      | None -> parseDataType spec http node
       | Some t -> parseDataType spec http t
     let l =
-      match c |> selectToken "in" |> parseParameterLocation' with
+      match node |> selectToken "in" |> parseParameterLocation' with
       | Some (Ok v) -> v
       | _ -> InQuery
     match typ with
     | Ok t ->
         Some
           { Location = l
-            Name = c |> readString "name"
-            Description = c |> readString "description"
-            Deprecated = c |> readBool "deprecated"
-            AllowEmptyValue = c |> readBool "allowEmptyValue"
+            Name = node |> readString "name"
+            Description = node |> readString "description"
+            Deprecated = node |> readBool "deprecated"
+            AllowEmptyValue = node |> readBool "allowEmptyValue"
             ParamType = t
-            Required = c |> readBool "required" }
+            Required = node |> readBool "required" }
     | _ -> None
 
   let parseParameters (spec:Value) http (token:Value) =
@@ -246,7 +218,7 @@ module SpecParser =
     | SObject props ->
         props
           |> Seq.choose (
-              fun (n,c) ->
+              fun (_,c) ->
                 let typ =
                   match c |> selectToken "schema" with
                   | None -> parseDataType spec http c
@@ -271,23 +243,11 @@ module SpecParser =
     | SCollection items -> 
         items |> List.choose (
             function 
-            | SObject props -> parseParameter spec http props
+            | XObject _ as o -> parseParameter spec http o
             | _ -> None
           )
     | _ -> []
 
-  let readStringList =
-    function
-    | Some (SCollection values) ->
-        values
-        |> List.choose (
-             function
-             | RawValue v when isNull v -> None
-             | RawValue v -> Some (string v)
-             | _ -> None
-             )
-    | _ -> []
-  
   let parseRoutes provider (spec:Value) =
     spec
     |> selectToken "paths"
@@ -317,28 +277,6 @@ module SpecParser =
               )
        )
     |> Seq.toList
-  
-  let readLicense =
-    Option.map (
-      fun v ->
-        { Name = readString "name" v
-          Url = readString "url" v }
-      )
-  
-  let parseInfos model =
-    let contact = model |> readString "info.contact.email"
-    let license = model |> selectToken "info.license" |> readLicense
-    { Description = model |> readString "info.description"
-      Version = model |> readString "info.version"
-      Title = model |> readString "info.title"
-      TermsOfService = model |> readString "info.termsOfService"
-      Contact = Some (Email contact)
-      License = license }
-
-  let isJson (content:string) =
-    if content |> String.IsNullOrWhiteSpace |> not
-    then content.TrimStart().StartsWith "{"
-    else false
 
   let loadDocument content = if content |> isJson then fromJson content else fromYaml content
 
@@ -347,11 +285,11 @@ module SpecParser =
     let infos = parseInfos spec
     let definitions =
       match spec |> selectToken "definitions" with
-      | Some (SObject o) ->
-          parseSchemas spec provider (SObject o)
+      | Some (XObject _ as o) ->
+          parseSchemas spec provider o
           |> List.choose (function | Ok s -> Some s | _ -> None)
       | _ -> []
-    
+
     let routes = parseRoutes provider spec
     { Infos = infos
       Host = spec |> readString "host"
@@ -360,17 +298,4 @@ module SpecParser =
       ExternalDocs = Map.empty
       Routes = routes
       Definitions = definitions }
-
-  let parseOpenApiV3 provider (content:string) =
-    let spec = content |> fromJson
-    let infos = parseInfos spec
-    let routes = parseRoutes provider spec
-
-    { Infos = infos
-      Host = spec |> readString "host"
-      BasePath = spec |> readString "basePath"
-      Schemes = spec |> selectToken "schemes" |> readStringList
-      ExternalDocs = Map.empty
-      Routes = routes
-      Definitions = [] }
-
+  

@@ -1,10 +1,11 @@
-namespace Swag4Net.Core
+namespace Swag4Net.Core.Domain
 
 open System
 open System.Net
+open SharedKernel
 
-module Models =
-  type TypeName = string
+module SwaggerSpecification =
+
   type Documentation =
     { Infos:Infos
       Host:string
@@ -28,33 +29,8 @@ module Models =
     { Name:string
       Properties:Property list }
   and Property = 
-    { Name:string; Type:DataTypeDescription; Enums:string list option }
+    { Name:string; Type:DataTypeDescription<Schema>; Enums:string list option }
 
-  and DataTypeDescription = 
-    | PrimaryType of DataType
-    | ComplexType of Schema
-    member __.IsArray() = 
-      match __ with 
-      | PrimaryType d ->
-          match d with 
-          | DataType.Array _ -> true
-          | _ -> false
-      | ComplexType _ -> false
-
-  and [<RequireQualifiedAccess>] DataType = 
-    | String of StringFormat option
-    | Number
-    | Integer
-    | Integer64
-    | Boolean
-    | Array of DataTypeDescription
-    | Object
-  and [<RequireQualifiedAccess>] StringFormat =
-    | Date
-    | DateTime
-    | Password
-    | Base64Encoded
-    | Binary
   and Route = 
     { Path:string
       Verb:string
@@ -66,25 +42,19 @@ module Models =
       Produces:string list
       Parameters:Parameter list
       Responses:Response list }
-  and ParameterLocation =
-    | InQuery
-    | InHeader
-    | InPath
-    | InCookie
-    | InBody
-    | InFormData
+
   and Parameter =
     { Location:ParameterLocation
       Name:string
       Description:string
       Deprecated:bool
       AllowEmptyValue:bool
-      ParamType:DataTypeDescription
+      ParamType:DataTypeDescription<Schema>
       Required:bool }
   and Response = 
     { Code:StatusCodeInfo
       Description:string
-      Type:DataTypeDescription option }
+      Type:DataTypeDescription<Schema> option }
   and StatusCodeInfo =
     | AnyStatusCode
     | StatusCode of HttpStatusCode

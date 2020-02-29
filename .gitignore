@@ -330,3 +330,9 @@ ASALocalRun/
 .mfractor/
 \!obj/
 \!artifact/
+/Clients/tmp/
+/Clients/.vscode
+
+.ionide/
+
+.DS_Store
