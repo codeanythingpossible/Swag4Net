@@ -11,7 +11,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ValidatorTest.fs" />
     <Compile Include="ParserTests.fs" />
     <Compile Include="v3\ParsingTests.fs" />
     <Compile Include="v2\ParsingTests.fs" />

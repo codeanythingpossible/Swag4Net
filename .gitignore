@@ -332,3 +332,5 @@ ASALocalRun/
 \!artifact/
 /Clients/tmp/
 /Clients/.vscode
+
+.ionide/

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net471;netstandard2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks>net471;netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <RootNamespace>Swag4Net.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
@@ -11,18 +11,10 @@
     <Compile Include="v2\SwaggerParser.fs" />
     <Compile Include="Parsing.fs" />
     <Compile Include="v3\Parser.fs" />
-    <EmbeddedResource Include="v3\openapi-jsonschema.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <Compile Include="Validator.fs" />
     <Compile Include="Parser.fs" />    
   </ItemGroup>
   <ItemGroup>
-    <None Include="abstract_parser.fsx" />
-    <None Include="generation.fsx" />
-    <None Include="script.fsx" />
     <None Include="ParsingV3.fsx" />
-    <None Include="computation-learning.fsx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="2.0.21" />
