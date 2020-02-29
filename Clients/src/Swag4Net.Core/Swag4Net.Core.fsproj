@@ -2,6 +2,10 @@
   <PropertyGroup>
     <TargetFrameworks>net471;netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <RootNamespace>Swag4Net.Core</RootNamespace>
+    <PackageProjectUrl>https://github.com/codeanythingpossible/Swag4Net</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/codeanythingpossible/Swag4Net/blob/develop/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/codeanythingpossible/Swag4Net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Document.fs" />
