@@ -15,8 +15,6 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using WebApiSample.Spec;
 
-//https://docs.microsoft.com/fr-fr/aspnet/core/tutorials/getting-started-with-swashbuckle?view=aspnetcore-2.2&tabs=visual-studio
-
 namespace WebApiSample
 {
     public class Startup
@@ -31,7 +29,8 @@ namespace WebApiSample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();//.SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            
+            services.AddMvc().AddMvcOptions(o => o.EnableEndpointRouting = false);
 
             services.AddCors();
 
@@ -49,10 +48,6 @@ namespace WebApiSample
             {
                 app.UseDeveloperExceptionPage();
             }
-            // else
-            // {
-            //     app.UseHsts();
-            // }
             
             app.UseSwagger();
 
