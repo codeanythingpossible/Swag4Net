@@ -2,12 +2,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>NewSwag.Core.Tests</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ParsingTests.fs" />
+    <Compile Include="ParserTests.fs" />
     <Compile Include="v3\ParsingTests.fs" />
     <Compile Include="v2\ParsingTests.fs" />
     <Compile Include="Program.fs" />

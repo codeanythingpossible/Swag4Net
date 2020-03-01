@@ -197,7 +197,7 @@ module OpenApiV3ClientGenerator =
                   yield autoProperty clrType pName :> MemberDeclarationSyntax
               | Error e -> logError e
             | Error e -> logError e
-        } |> AsyncSeq.toArray
+        } |> AsyncSeq.toArraySynchronously
 
       let code = publicClass tn members
 
@@ -332,7 +332,7 @@ module OpenApiV3ClientGenerator =
         |> Option.defaultValue Map.empty
         |> Map.toSeq
         |> generateClasses logError doc providers
-        |> AsyncSeq.toList
+        |> AsyncSeq.toListSynchronously
 
       let responses = 
         asyncSeq {
@@ -352,7 +352,7 @@ module OpenApiV3ClientGenerator =
                 yield name,v.Schema
         } |> AsyncSeq.toBlockingSeq
           |> generateClasses logError doc providers
-          |> AsyncSeq.toList
+          |> AsyncSeq.toListSynchronously
 
       let classes = schemas @ responses |> List.toArray
 
@@ -392,7 +392,7 @@ module OpenApiV3ClientGenerator =
         payloads
         |> Seq.map (fun v -> nameSchema v.Schema)
         |> generateClasses logError doc providers
-        |> AsyncSeq.toArray
+        |> AsyncSeq.toArraySynchronously
 
       return [classes; routesDtos] |> Array.concat |> dict
     }

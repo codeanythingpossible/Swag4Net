@@ -1,11 +1,11 @@
-﻿//#I "../../packages/netstandard.library/2.0.0/build/netstandard2.0/ref"
+﻿//#I "../../packages/netstandard.library/2.0.0/build/netstandard2.1/ref"
 #r "netstandard"
-#r "../../packages/newtonsoft.json/12.0.1/lib/netstandard2.0/newtonsoft.json.dll"
+#r "../../packages/newtonsoft.json/12.0.1/lib/netstandard2.1/newtonsoft.json.dll"
 #r "../../packages/YamlDotNet/6.0.0/lib/netstandard1.3/YamlDotNet.dll"
 
 #r "../../packages/Microsoft.CodeAnalysis.common/2.3.1/lib/netstandard1.3/Microsoft.CodeAnalysis.dll"
 #r "../../packages/Microsoft.CodeAnalysis.CSharp/2.3.1/lib/netstandard1.3/Microsoft.CodeAnalysis.CSharp.dll"
-#r "../../packages/microsoft.csharp/4.4.0/lib/netstandard2.0/Microsoft.CSharp.dll"
+#r "../../packages/microsoft.csharp/4.4.0/lib/netstandard2.1/Microsoft.CSharp.dll"
 #r "../../packages/microsoft.codeanalysis.analyzers/2.6.1/analyzers/dotnet/cs/Microsoft.CodeAnalysis.Analyzers.dll"
 #r "../../packages/microsoft.codeanalysis.analyzers/2.6.1/analyzers/dotnet/cs/Microsoft.CodeAnalysis.CSharp.Analyzers.dll"
 
