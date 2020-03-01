@@ -1,6 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net471;netstandard2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>NewSwag.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
@@ -8,9 +9,5 @@
     <Compile Include="JsonParser.fs" />
     <Compile Include="YamlParser.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />
-    <PackageReference Include="YamlDotNet" Version="6.0.0" />
-  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

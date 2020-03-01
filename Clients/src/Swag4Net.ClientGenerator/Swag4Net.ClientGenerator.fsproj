@@ -1,27 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp2.1</TargetFramework>
-
-        <PackAsTool>true</PackAsTool>
-        <ToolCommandName>Swag4Net</ToolCommandName>
-        <PackageOutputPath>$(PackagesOutputPath)</PackageOutputPath>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Argu" Version="5.2.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />
-    </ItemGroup>
-  
-    <ItemGroup>
-        <Compile Include="Program.fs" />
-    </ItemGroup>
-  
-    <ItemGroup>
-      <ProjectReference Include="..\Swag4Net.Core\Swag4Net.Core.fsproj" />
-      <ProjectReference Include="..\Swag4Net.Generators.RoslynGenerator\Swag4Net.Generators.RoslynGenerator.fsproj" />
-    </ItemGroup>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>Swag4Net</ToolCommandName>
+    <PackageOutputPath>$(PackagesOutputPath)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Swag4Net.Core\Swag4Net.Core.fsproj" />
+    <ProjectReference Include="..\Swag4Net.Generators.RoslynGenerator\Swag4Net.Generators.RoslynGenerator.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

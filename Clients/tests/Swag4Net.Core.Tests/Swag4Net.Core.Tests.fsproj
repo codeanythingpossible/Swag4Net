@@ -1,15 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>NewSwag.Core.Tests</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Expecto" Version="8.9.1" />
-    <PackageReference Include="Expecto.FsCheck" Version="8.9.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="ParsingTests.fs" />
     <Compile Include="Program.fs" />
@@ -27,4 +23,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
