@@ -1,0 +1,32 @@
+generate_load_scripts: true
+
+source https://api.nuget.org/v3/index.json
+
+framework: netstandard2.0, netcoreapp2.1
+
+storage: none
+
+nuget FSharp.Core
+nuget Argu framework: netcoreapp2.1
+nuget Bogus framework: netcoreapp2.1
+nuget Expecto framework: netcoreapp2.1
+clitool dotnet-xunit
+nuget Microsoft.AspNetCore.Mvc.Testing 2.1.1 framework: netcoreapp2.1
+# required as transitive dependency for Microsoft.AspNetCore.Mvc.Testing (need to define it here to limit version)
+nuget Microsoft.AspNetCore.TestHost ~> 2.1 framework: netcoreapp2.1
+nuget Microsoft.CodeAnalysis.CSharp 2.10.0
+nuget Microsoft.NET.Test.Sdk framework: netcoreapp2.1
+nuget Newtonsoft.Json 12.0.1
+nuget System.Net.Http 4.3.4
+nuget xunit framework: netcoreapp2.1 
+nuget xunit.runner.visualstudio framework: netcoreapp2.1
+nuget YamlDotNet 6.0.0
+
+nuget Microsoft.AspNetCore.All ~> 2.0 framework: netcoreapp2.1
+
+nuget Swashbuckle.AspNetCore.Annotations ~> 4.0.1
+nuget Swashbuckle.AspNetCore.Swagger ~> 4.0.1
+nuget Swashbuckle.AspNetCore.SwaggerGen ~> 4.0.1
+nuget Swashbuckle.AspNetCore.SwaggerUI ~> 4.0.1
+
+clitool Microsoft.VisualStudio.Web.CodeGeneration.Tools ~> 2.0.4

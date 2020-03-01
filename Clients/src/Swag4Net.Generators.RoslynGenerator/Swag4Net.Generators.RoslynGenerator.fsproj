@@ -1,24 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>netcoreapp2.1</TargetFramework>
-        <RootNamespace>Swag4Net.Generators.RoslynGenerator</RootNamespace>
-    </PropertyGroup>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>Swag4Net.Generators.RoslynGenerator</RootNamespace>
+  </PropertyGroup>
     <ItemGroup>
         <Compile Include="RoslynDsl.fs" />
         <Compile Include="Settings.fs" />
         <Compile Include="SwaggerClientGenerator.fs" />
         <Compile Include="OpenApiV3ClientGenerator.fs" />
     </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Swag4Net.Core\Swag4Net.Core.fsproj" />
   </ItemGroup>
-
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -1,8 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.28803.202
+VisualStudioVersion = 16.0.29519.87
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{370AA1D1-8235-4705-9AC6-4A9E54C9AFD9}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Core", "src\Swag4Net.Core\Swag4Net.Core.fsproj", "{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swag4Net.Sample", "src\Swag4Net.Sample\Swag4Net.Sample.csproj", "{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}"
@@ -47,6 +52,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{A8349503
 		fake.sh = fake.sh
 		global.json = global.json
 		nuget.config = nuget.config
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A1BD46DD-1E2E-4C94-9EB3-6E3687CB3DD5}"
+	ProjectSection(SolutionItems) = preProject
+		.config\dotnet-tools.json = .config\dotnet-tools.json
 	EndProjectSection
 EndProject
 Global

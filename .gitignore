@@ -336,3 +336,5 @@ ASALocalRun/
 .ionide/
 
 .DS_Store
+
+Clients/.paket/load/

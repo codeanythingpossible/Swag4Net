@@ -1,27 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
     <IsPackable>false</IsPackable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Bogus" Version="26.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="2.1.1" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="xunit" Version="2.3.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
-    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+    <ProjectReference Include="..\..\..\src\Swag4Net.RestClient\Swag4Net.RestClient.csproj" />
+    <ProjectReference Include="..\WebApiSample\WebApiSample.csproj" />
   </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\src\Swag4Net.RestClient\Swag4Net.RestClient.csproj" />
-      <ProjectReference Include="..\WebApiSample\WebApiSample.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="playground\" />
-    </ItemGroup>
-
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

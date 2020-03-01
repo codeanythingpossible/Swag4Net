@@ -1,11 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net471;netstandard2.0;netcoreapp3.1</TargetFrameworks>
-    <RootNamespace>Swag4Net.Core</RootNamespace>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>NewSwag.Core</RootNamespace>
     <PackageProjectUrl>https://github.com/codeanythingpossible/Swag4Net</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/codeanythingpossible/Swag4Net/blob/develop/LICENSE</PackageLicenseUrl>
-    <RepositoryUrl>https://github.com/codeanythingpossible/Swag4Net</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/codeanythingpossible/Swag4Net</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Document.fs" />
@@ -17,14 +18,5 @@
     <Compile Include="v3\Parser.fs" />
     <Compile Include="Parser.fs" />    
   </ItemGroup>
-  <ItemGroup>
-    <None Include="ParsingV3.fsx" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="FSharp.Control.AsyncSeq" Version="2.0.21" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />
-    <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.11" />
-    <PackageReference Include="YamlDotNet" Version="6.0.0" />
-  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
