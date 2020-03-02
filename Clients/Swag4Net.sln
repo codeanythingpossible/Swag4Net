@@ -1,8 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2035
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29519.87
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{370AA1D1-8235-4705-9AC6-4A9E54C9AFD9}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Core", "src\Swag4Net.Core\Swag4Net.Core.fsproj", "{0DDC8A5C-1B97-40A9-A3A5-8525F3B13698}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swag4Net.Sample", "src\Swag4Net.Sample\Swag4Net.Sample.csproj", "{63C5E3D0-07AF-4F0D-8903-FC374F88A7D7}"
@@ -14,8 +19,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{DC17E624-D668-4093-9CF7-D2919224780A}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Assets\petstore.json = tests\Assets\petstore.json
-		tests\Assets\swagger.json = tests\Assets\swagger.json
 		tests\Assets\petstore.yaml = tests\Assets\petstore.yaml
+		tests\Assets\swagger.json = tests\Assets\swagger.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}"
@@ -31,6 +36,27 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{49A148C6-0FA3-4C83-9630-A57A41C2E18F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "openapiV3", "openapiV3", "{E9087F0B-A1F4-448C-8389-7918F4D3D690}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Assets\openapiV3\petstoreV3.json = tests\Assets\openapiV3\petstoreV3.json
+		tests\Assets\openapiV3\petstoreV3.yaml = tests\Assets\openapiV3\petstoreV3.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{A8349503-AE09-4102-9D77-DD07F225AF24}"
+	ProjectSection(SolutionItems) = preProject
+		build.fsx = build.fsx
+		build.fsx.lock = build.fsx.lock
+		Directory.Build.props = Directory.Build.props
+		fake.cmd = fake.cmd
+		fake.sh = fake.sh
+		nuget.config = nuget.config
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A1BD46DD-1E2E-4C94-9EB3-6E3687CB3DD5}"
+	ProjectSection(SolutionItems) = preProject
+		.config\dotnet-tools.json = .config\dotnet-tools.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +111,7 @@ Global
 		{E4222471-0378-41F7-A25E-116228F9A81E} = {766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}
 		{681937BE-DFAA-4363-81C7-EA90CAAF05F4} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
 		{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80} = {49A148C6-0FA3-4C83-9630-A57A41C2E18F}
+		{E9087F0B-A1F4-448C-8389-7918F4D3D690} = {DC17E624-D668-4093-9CF7-D2919224780A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E44C2D80-4178-4956-BC1A-7E12178BD670}

@@ -3,27 +3,18 @@ namespace Swag4Net.Generators.RoslynGenerator
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.CSharp
 open Microsoft.CodeAnalysis.CSharp.Syntax
-open System.Net
-
 open Swag4Net.Core
-open Models
-open Microsoft.CodeAnalysis.CSharp.Syntax
-open Microsoft.CodeAnalysis.CSharp
+open Swag4Net.Core.Domain
+open SharedKernel
+open SwaggerSpecification
+open RoslynDsl
 
-module CodeGeneration =
-
-  type GenerationSettings =
-    { Namespace:string }
-
-module RoslynDsl =
-  let parseName = SyntaxFactory.ParseName
-  let identifierName (n:string) = SyntaxFactory.IdentifierName n
-  let usingDirective = parseName >> SyntaxFactory.UsingDirective
-  let parseTypeName = SyntaxFactory.ParseTypeName
+[<RequireQualifiedAccess>]
+module SwaggerClientGenerator =
 
   let getClrType (prop:Property) = 
-    let rec getTypeName =
-      function
+    let rec getTypeName (t:DataTypeDescription<Schema>) =
+        match t with
         | PrimaryType dataType -> 
             match dataType with
             | DataType.String (Some StringFormat.Date) -> "DateTime"
@@ -36,114 +27,12 @@ module RoslynDsl =
             | DataType.Integer -> "int"
             | DataType.Integer64 -> "long"
             | DataType.Boolean -> "bool"
-            | DataType.Array s -> s |> getTypeName |> sprintf "IEnumerable<%s>"
+            | DataType.Array (Inlined s) -> s |> getTypeName |> sprintf "IEnumerable<%s>"
+            | DataType.Array (Referenced _) -> "object"
             | DataType.Object -> "object"
-        | ComplexType name -> name
+        | ComplexType s -> s.Name
+        | _ -> raise (System.NotImplementedException "Cannot resolve CLR type for now")
     prop.Type |> getTypeName |> SyntaxFactory.ParseTypeName
-
-  let ucFirst(text:string) =
-    if System.String.IsNullOrWhiteSpace(text) || text.Length < 2
-    then text
-    else
-      sprintf "%s%s" (text.Substring(0, 1).ToUpperInvariant()) (text.Substring(1))
-
-  let constructor (name:string) =
-    SyntaxFactory.ConstructorDeclaration name
-
-  let inline withModifier<'t when 't :> BaseMethodDeclarationSyntax> (kind:SyntaxKind) (c:'t) =
-    let m = c :> BaseMethodDeclarationSyntax
-    m.WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(kind))) :?> 't
-
-  let withParameters (parameters:ParameterSyntax list) (c:ConstructorDeclarationSyntax) =
-    let paramList =
-          parameters
-          |> List.fold (fun (l:ParameterListSyntax) p -> l.AddParameters p) (SyntaxFactory.ParameterList())
-    c.WithParameterList(paramList)
-
-  let parameter varName typeName =
-    SyntaxFactory.Parameter(SyntaxFactory.Identifier varName).WithType(parseTypeName typeName)
-
-  let withBody (statements:StatementSyntax list) (c:ConstructorDeclarationSyntax) =
-    SyntaxFactory.Block().AddStatements(statements |> Seq.toArray)
-    |> c.WithBody
-
-  let argumentName (varName:string) =
-    SyntaxFactory.Argument(SyntaxFactory.IdentifierName varName)
-
-  let withBaseConstructorInitializer (args:ArgumentSyntax list) (c:ConstructorDeclarationSyntax) =
-    c.WithInitializer(
-      SyntaxFactory.ConstructorInitializer(SyntaxKind.BaseConstructorInitializer)
-          .AddArgumentListArguments(args |> Seq.toArray)
-    ) :> MemberDeclarationSyntax
-
-  let declareVariable typeName name =
-    SyntaxFactory.LocalDeclarationStatement(
-      SyntaxFactory.VariableDeclaration(
-            (parseTypeName typeName),
-            SyntaxFactory.SeparatedList().Add(SyntaxFactory.VariableDeclarator(SyntaxFactory.Identifier(name))))
-    )
-
-  let declareVariableWithValue name value =
-    SyntaxFactory.LocalDeclarationStatement(
-      SyntaxFactory.VariableDeclaration(
-        SyntaxFactory.IdentifierName("var"))
-          .WithVariables(
-              SyntaxFactory.SingletonSeparatedList<VariableDeclaratorSyntax>(
-                  SyntaxFactory.VariableDeclarator(
-                      SyntaxFactory.Identifier name).WithInitializer(
-                      SyntaxFactory.EqualsValueClause value))))
-
-  let argument exp =
-    SyntaxFactory.Argument(exp)
-
-  let literalExpression kind value =
-    SyntaxFactory.LiteralExpression(kind, value) :> ExpressionSyntax
-
-  let memberAccess idName memberName =
-    SyntaxFactory.MemberAccessExpression(
-        SyntaxKind.SimpleMemberAccessExpression,
-        identifierName idName,
-        identifierName memberName
-      )
-
-  let argumentList (arguments:ArgumentSyntax list) =
-    SyntaxFactory.ArgumentList().AddArguments(arguments |> Seq.toArray)
-
-  let instanciate className (arguments:ExpressionSyntax list) =
-    let args = arguments |> List.map argument |> argumentList
-    let classIdentifier = identifierName className
-    SyntaxFactory.ObjectCreationExpression(classIdentifier, args, null)
-
-  let assignVariable objectCreationExpression variableIdentifier =
-    let assignment = SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, variableIdentifier, objectCreationExpression);
-    SyntaxFactory.ExpressionStatement(assignment) :> StatementSyntax
-
-  let separatedArgumentList (arguments:ArgumentSyntax list) =
-    let addArg a (s:SeparatedSyntaxList<ArgumentSyntax>) = s.Add(a)
-    let state = SyntaxFactory.SeparatedList<ArgumentSyntax>()
-    arguments
-      |> List.fold (fun a b -> a |> addArg b) state
-      |> SyntaxFactory.ArgumentList
-
-  let invokeMember (arguments:ArgumentSyntax list) exp =
-    let args = arguments |> separatedArgumentList
-    SyntaxFactory.InvocationExpression(exp).WithArgumentList args
-
-  let addUsings (usings:string list) (unit:CompilationUnitSyntax) =
-     let us = usings |> List.toArray |> Array.map usingDirective
-     unit.AddUsings us
-
-  let inline addMembers (m:#MemberDeclarationSyntax) (unit:CompilationUnitSyntax) =
-     unit.AddMembers m
-  
-  let addArg a (args:SeparatedSyntaxList<ArgumentSyntax>) =
-    args.Add(a)
-
-//[<RequireQualifiedAccess>]
-module CsharpGenerator =
-
-  open CodeGeneration
-  open RoslynDsl
 
   let jsonPropertyAttribute(propName:string) = 
     let name = parseName "JsonProperty"
@@ -152,15 +41,7 @@ module CsharpGenerator =
     let attributeList = (new SeparatedSyntaxList<AttributeSyntax>()).Add(attribute)
     SyntaxFactory.AttributeList(attributeList)
 
-  let callBaseConstructor varName typeName (clientName:string) =
-    
-    constructor clientName
-    |> withModifier SyntaxKind.PublicKeyword
-    |> withParameters [ parameter varName typeName ]
-    |> withBody []
-    |> withBaseConstructorInitializer [ argument (identifierName varName) ]
-
-  let rec rawTypeIdentifier =
+  let rec rawTypeIdentifier : DataTypeDescription<Schema> -> string =
     function
     | PrimaryType dataType -> 
         match dataType with
@@ -169,14 +50,17 @@ module CsharpGenerator =
         | DataType.Integer -> "int"
         | DataType.Integer64 -> "long"
         | DataType.Boolean -> "bool"
-        | DataType.Array propType -> 
-            propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
+        | DataType.Array (Inlined propType) -> propType |> rawTypeIdentifier |> sprintf "IEnumerable<%s>"
+        | DataType.Array (Referenced _) -> "object"
         | DataType.Object -> "object"
-    | ComplexType typeName -> typeName
+    | ComplexType s -> s.Name
 
-  let isSuccess (code:HttpStatusCode) =
-    let c = int32 code
-    c >= 200 && c < 300
+  let isSuccess =
+    function
+    | StatusCode code ->
+        let c = int32 code
+        c >= 200 && c < 300
+    | _ -> false
 
   let resolveRouteSuccessReponseType route =
     let successResponses = route.Responses |> List.filter (fun r -> r.Code |> isSuccess)
@@ -216,13 +100,16 @@ module CsharpGenerator =
         let codesAndTypes =
           route.Responses
             |> List.filter (fun r -> r.Code |> isSuccess)
-            |> List.map(
+            |> List.choose(
                  fun r ->
                   let t = 
                     match r.Type with
                     | Some t -> rawTypeIdentifier t
                     | None -> "Nothing"
-                  (int r.Code), t
+                  match r.Code with
+                  | StatusCode c ->
+                      Some ((int c), t)
+                  | _ -> None
               )
             |> List.distinctBy fst
 
@@ -241,11 +128,10 @@ module CsharpGenerator =
         (d :> StatementSyntax) :: dicValues
       else []
 
-    let callQueryParam (p:Parameter) =
-      let name = p.Name
-      let varName = identifierName p.Name
-      let methodName =
-        if p.ParamType.IsArray() then "AddQueryParameters" else "AddQueryParameter" 
+    let callQueryParam (param:Parameter) =
+      let name = param.Name
+      let varName = identifierName param.Name
+      let methodName = if param.ParamType.IsArray() then "AddQueryParameters" else "AddQueryParameter"       
       SyntaxFactory.ExpressionStatement(
         memberAccess "base" methodName
           |> invokeMember [
@@ -269,6 +155,8 @@ module CsharpGenerator =
     let callPathParam = callParamMethodName "AddPathParameter"
     let callBodyParam = callParamMethodName "AddBodyParameter"
     let callCookieParam = callParamMethodName "AddCookieParameter"
+    let callHeaderParam = callParamMethodName "AddHeaderParameter"
+    let callFormDataParam = callParamMethodName "AddFormDataParameter"
     
     let execMethod =
       match dtoType with
@@ -310,9 +198,10 @@ module CsharpGenerator =
             match p.Location with
             | InQuery -> Some (callQueryParam p :> StatementSyntax)
             | InPath -> Some (callPathParam p :> StatementSyntax)
-            | InBody -> Some (callBodyParam p :> StatementSyntax)
+            | InBody _ -> Some (callBodyParam p :> StatementSyntax)
             | InCookie -> Some (callCookieParam p :> StatementSyntax)
-            | _ -> None
+            | InHeader -> Some (callHeaderParam p :> StatementSyntax)
+            | InFormData -> Some (callFormDataParam p :> StatementSyntax)
          )
     let block = 
       SyntaxFactory.Block(
@@ -350,7 +239,7 @@ module CsharpGenerator =
     else
       method.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
   
-  let generateClass (settings:GenerationSettings) (def:TypeDefinition) =
+  let generateClass (settings:GenerationSettings) (def:Schema) =
     let members = 
       def.Properties
       |> List.map (
@@ -459,7 +348,7 @@ module CsharpGenerator =
       |> addMembers ns
     syntaxFactory.NormalizeWhitespace().ToFullString()
 
-  let generateDtos (settings:GenerationSettings) (defs:TypeDefinition list) =
+  let generateDtos (settings:GenerationSettings) (defs:Schema list) =
     let classes = defs |> Seq.map (generateClass settings) |> Seq.cast<MemberDeclarationSyntax> |> Seq.toArray
     let ns = SyntaxFactory.NamespaceDeclaration(parseName settings.Namespace).NormalizeWhitespace().AddMembers(classes)
     let syntaxFactory =

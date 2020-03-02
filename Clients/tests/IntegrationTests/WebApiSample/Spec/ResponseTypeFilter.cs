@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -6,15 +7,16 @@ namespace WebApiSample.Spec
 {
   public class ResponseTypeFilter : IOperationFilter
   {        
-    public void Apply(Operation operation, OperationFilterContext context)
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
       var attr = context.MethodInfo.GetCustomAttribute<SwaggerResponseContentTypeAttribute>();
       if (attr == null)
         return;
  
-      operation.Produces.Clear();
+      operation.Responses.Clear();
 
-      foreach (var mimetype in attr.Mimetypes) operation.Produces.Add(mimetype);
+      //foreach (var mimetype in attr.Mimetypes) operation.Responses.Add(mimetype);
     }
+
   }
 }

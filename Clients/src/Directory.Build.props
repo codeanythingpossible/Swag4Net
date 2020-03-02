@@ -1,7 +1,9 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
+
   <PropertyGroup>
-    <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(SolutionDir)!artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
-    <PackagesOutputPath Condition=" '$(PackagesOutputPath)' == '' ">$(SolutionDir)!artifacts\packages\</PackagesOutputPath>
+    <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(SolutionDir)$(ArtifactFolderName)\bin\$(MSBuildProjectName)</BaseOutputPath>
+    <PackagesOutputPath Condition=" '$(PackagesOutputPath)' == '' ">$(SolutionDir)$(ArtifactFolderName)\nupkg\</PackagesOutputPath>
   </PropertyGroup>
+
 </Project>

@@ -1,0 +1,6 @@
+﻿Swashbuckle.AspNetCore.Annotations
+Swashbuckle.AspNetCore.Swagger
+Swashbuckle.AspNetCore.SwaggerGen
+Swashbuckle.AspNetCore.SwaggerUI
+Microsoft.VisualStudio.Web.CodeGeneration.Tools
+Bogus

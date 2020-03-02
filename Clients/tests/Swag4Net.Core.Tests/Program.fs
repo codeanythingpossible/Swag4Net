@@ -1,11 +1,23 @@
+namespace Swag4Net.Code.Tests
+
 module Program =
   open Expecto
-  open ParsingTests
   
   (**
    * run the test with:
-   * dotnet watch -p NewSwag.Core.Tests run -f netcoreapp2.1
+   * dotnet watch -p Swag4Net.Core.Tests.fsproj run -f netcoreapp3.1
    *)
   
   let [<EntryPoint>] main args =
-    runTestsWithArgs defaultConfig args tests
+
+    let runTests = runTestsWithArgs defaultConfig args
+
+    let result =
+      [
+        Swag4Net.Code.Tests.v2.ParsingTests.tests
+        Swag4Net.Code.Tests.v3.ParsingTests.tests
+        Swag4Net.Code.Tests.ParserTests.tests
+      ]
+      |> List.fold (fun r t -> r + runTests t) 0
+    
+    result

@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Swag4Net.RestClient;
 using GeneratedClientTests.Generated;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Swag4Net.RestClient.Results;
 using WebApiSample;
 using WebApiSample.Controllers;
 using Xunit;
@@ -27,11 +29,12 @@ namespace GeneratedClientTests
         [Fact]
         public async Task Get_ShouldBeOk()
         {
-            var result = await client.Get();
+            Result<IEnumerable<string>> result = await client.Get();
 
             Assert.True(result.IsSuccess);
-            Assert.Equal(ValuesController.Values.Count, result.Value.Count());
-            Assert.True(ValuesController.Values.SequenceEqual(result.Value));
+            IEnumerable<string> resultValue = result.Value;
+            Assert.Equal(ValuesController.Values.Count, resultValue.Count());
+            Assert.True(ValuesController.Values.SequenceEqual(resultValue));
         }
         
         [Fact]

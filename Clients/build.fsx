@@ -15,8 +15,6 @@ open Fake.Core
 open Fake.IO.FileSystemOperators
 
 // Properties
-let outputDir = "./!artifacts"
-let tempDir = "./!obj"
 
 let install = lazy DotNet.install DotNet.Versions.FromGlobalJson
 
@@ -39,6 +37,16 @@ Target.create "BuildGeneratorApp" (fun _ ->
     withWorkDir "./src/Swag4Net.ClientGenerator"
       >> DotNet.Options.withCustomParams (Some args)
   DotNet.exec options "run" "" |> ignore
+)
+
+Target.create "PackCore" (fun _ ->
+  let options = withWorkDir "./src/Swag4Net.Core"
+  DotNet.exec options "pack" "" |> ignore
+)
+
+Target.create "PackRoslynGenerator" (fun _ ->
+  let options = withWorkDir "./src/Swag4Net.Generators.RoslynGenerator"
+  DotNet.exec options "pack" "" |> ignore
 )
 
 Target.create "PackGeneratorApp" (fun _ ->
@@ -65,6 +73,8 @@ open Fake.Core.TargetOperators
   ==> "BuildGeneratorApp"
   ==> "Test"
   ==> "IntegrationTests"
+  ==> "PackCore"
+  ==> "PackRoslynGenerator"
   ==> "PackGeneratorApp"
   ==> "Default"
 

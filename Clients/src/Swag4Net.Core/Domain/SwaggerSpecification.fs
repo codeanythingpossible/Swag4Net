@@ -1,9 +1,11 @@
-namespace Swag4Net.Core
+namespace Swag4Net.Core.Domain
 
+open System
 open System.Net
+open SharedKernel
 
-module Models =
-  type TypeName = string
+module SwaggerSpecification =
+
   type Documentation =
     { Infos:Infos
       Host:string
@@ -11,7 +13,7 @@ module Models =
       Schemes:string list
       Routes:Route list
       ExternalDocs:Map<string,string>
-      Definitions:TypeDefinition list }
+      Definitions:Schema list }
   and Infos =
     { Description:string
       Version:string
@@ -23,37 +25,12 @@ module Models =
     | Email of string
   and License = 
     { Name:string; Url:string }
-  and TypeDefinition = 
+  and Schema = 
     { Name:string
       Properties:Property list }
   and Property = 
-    { Name:string; Type:PropertyType; Enums:string list option }
+    { Name:string; Type:DataTypeDescription<Schema>; Enums:string list option }
 
-  and PropertyType = 
-    | PrimaryType of DataType
-    | ComplexType of TypeName
-    member __.IsArray() = 
-      match __ with 
-      | PrimaryType d ->
-          match d with 
-          | DataType.Array _ -> true
-          | _ -> false
-      | ComplexType _ -> false
-
-  and [<RequireQualifiedAccess>] DataType = 
-    | String of StringFormat option
-    | Number
-    | Integer
-    | Integer64
-    | Boolean
-    | Array of PropertyType
-    | Object
-  and [<RequireQualifiedAccess>] StringFormat =
-    | Date
-    | DateTime
-    | Password
-    | Base64Encoded
-    | Binary
   and Route = 
     { Path:string
       Verb:string
@@ -65,23 +42,19 @@ module Models =
       Produces:string list
       Parameters:Parameter list
       Responses:Response list }
-  and ParameterLocation =
-    | InQuery
-    | InHeader
-    | InPath
-    | InCookie
-    | InBody
-    | InFormData
+
   and Parameter =
     { Location:ParameterLocation
       Name:string
       Description:string
       Deprecated:bool
       AllowEmptyValue:bool
-      ParamType:PropertyType
+      ParamType:DataTypeDescription<Schema>
       Required:bool }
   and Response = 
-    { Code:HttpStatusCode
+    { Code:StatusCodeInfo
       Description:string
-      Type:PropertyType option }
-
+      Type:DataTypeDescription<Schema> option }
+  and StatusCodeInfo =
+    | AnyStatusCode
+    | StatusCode of HttpStatusCode
