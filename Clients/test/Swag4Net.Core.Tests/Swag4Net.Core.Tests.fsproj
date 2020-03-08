@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RootNamespace>NewSwag.Core.Tests</RootNamespace>
+    <RootNamespace>Swag4Net.Core.Tests</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ParserTests.fs" />

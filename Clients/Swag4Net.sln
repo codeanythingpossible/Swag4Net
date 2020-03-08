@@ -14,39 +14,38 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swag4Net.Sample", "src\Swag
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.ClientGenerator", "src\Swag4Net.ClientGenerator\Swag4Net.ClientGenerator.fsproj", "{96C6F95B-33BB-4E52-8DD1-B0F40FF8A476}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Core.Tests", "tests\Swag4Net.Core.Tests\Swag4Net.Core.Tests.fsproj", "{E3CD000D-0723-4175-8900-0B7787AA50D3}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Core.Tests", "test\Swag4Net.Core.Tests\Swag4Net.Core.Tests.fsproj", "{E3CD000D-0723-4175-8900-0B7787AA50D3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{DC17E624-D668-4093-9CF7-D2919224780A}"
 	ProjectSection(SolutionItems) = preProject
-		tests\Assets\petstore.json = tests\Assets\petstore.json
-		tests\Assets\petstore.yaml = tests\Assets\petstore.yaml
-		tests\Assets\swagger.json = tests\Assets\swagger.json
+		test\Assets\petstore.json = test\Assets\petstore.json
+		test\Assets\petstore.yaml = test\Assets\petstore.yaml
+		test\Assets\swagger.json = test\Assets\swagger.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{766C9D5C-4FBF-4A9C-94FD-19C3A48E6BE9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApiSample", "tests\IntegrationTests\WebApiSample\WebApiSample.csproj", "{546E8C33-D64B-44B7-A98F-C7C14B17631E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApiSample", "test\IntegrationTests\WebApiSample\WebApiSample.csproj", "{546E8C33-D64B-44B7-A98F-C7C14B17631E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneratedClientTests", "tests\IntegrationTests\GeneratedClientTests\GeneratedClientTests.csproj", "{E4222471-0378-41F7-A25E-116228F9A81E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneratedClientTests", "test\IntegrationTests\GeneratedClientTests\GeneratedClientTests.csproj", "{E4222471-0378-41F7-A25E-116228F9A81E}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Swag4Net.Generators.RoslynGenerator", "src\Swag4Net.Generators.RoslynGenerator\Swag4Net.Generators.RoslynGenerator.fsproj", "{681937BE-DFAA-4363-81C7-EA90CAAF05F4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Swag4Net.RestClient", "src\Swag4Net.RestClient\Swag4Net.RestClient.csproj", "{CAE3CA8B-AB2A-46FF-91FE-DF8F52CEAA80}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{63D27560-CD20-4AAF-BDD1-5CDDE0DE7844}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{49A148C6-0FA3-4C83-9630-A57A41C2E18F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "openapiV3", "openapiV3", "{E9087F0B-A1F4-448C-8389-7918F4D3D690}"
 	ProjectSection(SolutionItems) = preProject
-		tests\Assets\openapiV3\petstoreV3.json = tests\Assets\openapiV3\petstoreV3.json
-		tests\Assets\openapiV3\petstoreV3.yaml = tests\Assets\openapiV3\petstoreV3.yaml
+		test\Assets\openapiV3\petstoreV3.json = test\Assets\openapiV3\petstoreV3.json
+		test\Assets\openapiV3\petstoreV3.yaml = test\Assets\openapiV3\petstoreV3.yaml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{A8349503-AE09-4102-9D77-DD07F225AF24}"
 	ProjectSection(SolutionItems) = preProject
 		build.fsx = build.fsx
-		build.fsx.lock = build.fsx.lock
 		Directory.Build.props = Directory.Build.props
 		fake.cmd = fake.cmd
 		fake.sh = fake.sh

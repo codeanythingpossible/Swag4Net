@@ -1,6 +1,6 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
   <PropertyGroup>
-    <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(SolutionDir)build.artifacts\tests\$(MSBuildProjectName)\</BaseOutputPath>
+    <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(SolutionDir)$(ArtifactFolderName)\test\$(MSBuildProjectName)\</BaseOutputPath>
   </PropertyGroup>
 </Project>

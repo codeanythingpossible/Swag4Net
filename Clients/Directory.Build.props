@@ -1,16 +1,26 @@
 <Project>
   <PropertyGroup>
     <!-- To be resolved from nuget package version  see https://github.com/zericco/Study.VersionUpdater -->
-    <VersionMajor Condition="'$(VersionMajor)'==''">0</VersionMajor>
-    <VersionMinor Condition="'$(VersionMinor)'==''">1</VersionMinor>
-    <VersionPatch Condition="'$(VersionPatch)'==''">0-alpha</VersionPatch>
+    <VersionMajor Condition="'$(VersionMajor)'==''">1</VersionMajor>
+    <VersionMinor Condition="'$(VersionMinor)'==''">0</VersionMinor>
+    <VersionPatch Condition="'$(VersionPatch)'==''">0</VersionPatch>
+    <VersionMetadata Condition="'$(VersionMetadata)'==''">pre</VersionMetadata>
+    <BuildId Condition="'$(BuildId)'==''">0</BuildId>
     <Authors>CodeAnythingPossible</Authors>
     <Company>CodeAnythingPossible Inc.</Company>
     <Product>CodeAnythingPossible.Swag4Net</Product>
-    <Version  Condition="'$(Version)'==''">$(VersionMajor).$(VersionMinor).$(VersionPatch)</Version>
+    <Version  Condition="'$(Configuration)'!='Release'">$(VersionMajor).$(VersionMinor).$(VersionPatch)-$(VersionMetadata)</Version>
+    <Version  Condition="'$(Configuration)'=='Release'">$(VersionMajor).$(VersionMinor).$(VersionPatch)</Version>
+    <AssemblyInformationalVersion>$(Version)</AssemblyInformationalVersion>
     <AssemblyVersion>$(VersionMajor).0.0.0</AssemblyVersion>
-    <FileVersion>$(VersionMajor).0.0.0</FileVersion>
-    <SolutionDir Condition=" '$(SolutionDir)' == '' ">$(MSBuildThisFileDirectory)</SolutionDir>
-    <BaseIntermediateOutputPath>$(SolutionDir)build.obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <FileVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).$(BuildId)</FileVersion>
+    <ArtifactFolderName>artifacts</ArtifactFolderName>
+    <IntermediateFolderName>artifacts\obj</IntermediateFolderName>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <SolutionDir Condition=" '$(SolutionDir)' == '' ">$(MSBuildThisFileDirectory)</SolutionDir>
+    <BaseIntermediateOutputPath>$(SolutionDir)$(IntermediateFolderName)\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
 </Project>
